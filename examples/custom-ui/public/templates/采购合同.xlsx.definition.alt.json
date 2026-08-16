@@ -1,0 +1,251 @@
+{
+  "version": 1,
+  "source": {
+    "kind": "xlsx",
+    "hash": "4ddd68b851ae584034773009608d3d97d54343f13a7e30081dd101f4952d4e0a"
+  },
+  "fields": [
+    {
+      "name": "contractNo",
+      "type": "text",
+      "label": "Contract No.",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B4"
+      },
+      "id": "802c36dc-d63a-45c1-a641-813aa7584ee2",
+      "required": true
+    },
+    {
+      "name": "signPlace",
+      "type": "text",
+      "label": "Place of signing",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B5"
+      },
+      "id": "bc066c64-c7e7-45d1-b5dd-bc2d9cc55eb0",
+      "required": true
+    },
+    {
+      "name": "partyA",
+      "type": "text",
+      "label": "Party A",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B6"
+      },
+      "id": "98cea489-2343-4783-9953-af164864a15c",
+      "required": true
+    },
+    {
+      "name": "partyAAddress",
+      "type": "text",
+      "label": "Party A address",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B7"
+      },
+      "id": "d12261c4-2ecd-4304-8dda-b83671a44f26"
+    },
+    {
+      "name": "partyAContact",
+      "type": "text",
+      "label": "Party A contact",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B8"
+      },
+      "id": "95eb874a-96bd-4542-bb50-69410999514f"
+    },
+    {
+      "name": "partyB",
+      "type": "text",
+      "label": "Party B",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B9"
+      },
+      "id": "2475b3d2-7ba4-483a-ab2e-3508688c1605",
+      "required": true
+    },
+    {
+      "name": "partyBAddress",
+      "type": "text",
+      "label": "Party B address",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B10"
+      },
+      "id": "3ecb6659-e7e6-4318-b6b4-4cab816b6585"
+    },
+    {
+      "name": "partyBContact",
+      "type": "text",
+      "label": "Party B contact",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B11"
+      },
+      "id": "05e81def-b616-4120-8f48-86a718e7e4b9"
+    },
+    {
+      "name": "goods",
+      "type": "text",
+      "label": "Goods",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B12"
+      },
+      "id": "17f9b612-1ee6-4e8d-9dff-395f44962664"
+    },
+    {
+      "name": "spec",
+      "type": "text",
+      "label": "Spec",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B13"
+      },
+      "id": "0497dd67-2a1b-44e9-9c4f-11825575af36"
+    },
+    {
+      "name": "qty",
+      "type": "number",
+      "label": "Qty",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B14"
+      },
+      "id": "a952e88e-3c42-48fd-a9a8-e7a230b46b0e"
+    },
+    {
+      "name": "unitPrice",
+      "type": "number",
+      "label": "Unit price",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B15"
+      },
+      "id": "b47a50f7-5039-482f-b39a-d9fb19946e3b"
+    },
+    {
+      "name": "amount",
+      "type": "number",
+      "label": "Amount",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B16"
+      },
+      "id": "ad9ccfeb-b725-4f4c-be81-07397373d3bd",
+      "required": true
+    },
+    {
+      "name": "payMethod",
+      "type": "select",
+      "label": "Payment method",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B17"
+      },
+      "id": "cf1cb383-eacd-4ab2-97e7-5b41dd6a961f",
+      "required": true,
+      "options": [
+        {
+          "value": "wire",
+          "label": "Wire transfer"
+        },
+        {
+          "value": "acceptance",
+          "label": "Bank acceptance"
+        },
+        {
+          "value": "check",
+          "label": "Check"
+        }
+      ]
+    },
+    {
+      "name": "payTerm",
+      "type": "text",
+      "label": "Payment term",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B18"
+      },
+      "id": "b3b3922f-2cb6-4072-95c1-05c6d851ebf5"
+    },
+    {
+      "name": "deliveryDate",
+      "type": "date",
+      "label": "Delivery date",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B19"
+      },
+      "id": "72b4c546-827d-4a32-baf9-c0a578922098",
+      "required": true
+    },
+    {
+      "name": "deliveryPlace",
+      "type": "text",
+      "label": "Delivery place",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B20"
+      },
+      "id": "d71dac6c-67d2-4589-9a48-7cc4b4500209"
+    },
+    {
+      "name": "warranty",
+      "type": "text",
+      "label": "Warranty",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B21"
+      },
+      "id": "56cfca66-84b0-4af7-bb1c-53b341ae94af"
+    },
+    {
+      "name": "signDate",
+      "type": "date",
+      "label": "Sign date",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B22"
+      },
+      "id": "6b123316-ffd6-4ac2-bbc9-00fe85802887",
+      "required": true
+    },
+    {
+      "name": "note",
+      "type": "textarea",
+      "label": "Notes",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B23"
+      },
+      "id": "8d6bf96b-36ae-4367-9a9f-89fbc6693eb7"
+    }
+  ]
+}

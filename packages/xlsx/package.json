@@ -1,0 +1,28 @@
+{
+  "name": "@contract-kit/xlsx",
+  "version": "0.1.0",
+  "description": "Excel (.xlsx) adapter for contract-kit",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@contract-kit/kernel": "0.1.0",
+    "exceljs": "^4.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

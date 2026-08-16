@@ -1,0 +1,59 @@
+.ck-field {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: baseline;
+  margin: 0 2px;
+  max-width: 100%;
+}
+
+.ck-field-input,
+.ck-field-select {
+  min-width: 8em;
+  max-width: 100%;
+  padding: 0 4px;
+  font: inherit;
+  line-height: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid #333;
+  outline: none;
+}
+
+.ck-field-input:focus,
+.ck-field-select:focus {
+  border-bottom-color: #409eff;
+}
+
+.ck-field-date {
+  width: 10.5em;
+  min-width: 10.5em;
+}
+
+.ck-field-number {
+  width: 7em;
+  min-width: 6em;
+}
+
+.ck-field-textarea {
+  width: min(28em, 100%);
+  min-height: 2.8em;
+  padding: 4px 6px;
+  font: inherit;
+  line-height: 1.6;
+  color: inherit;
+  background: #fafafa;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  resize: vertical;
+}
+
+.ck-field.is-error .ck-field-input,
+.ck-field.is-error .ck-field-select {
+  border-bottom-color: #f56c6c;
+}
+
+.ck-field.is-error .ck-field-textarea {
+  border-color: #f56c6c;
+}

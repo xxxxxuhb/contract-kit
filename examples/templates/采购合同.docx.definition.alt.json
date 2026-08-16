@@ -1,0 +1,231 @@
+{
+  "version": 1,
+  "source": {
+    "kind": "docx",
+    "hash": "fc129a9565f00d12b981b3aefabbdf2f0ea0001037e2025bd224702437a27dfd"
+  },
+  "fields": [
+    {
+      "name": "contractNo",
+      "type": "text",
+      "label": "Contract No.",
+      "anchor": {
+        "kind": "marker",
+        "name": "contractNo"
+      },
+      "id": "e0285c64-1149-4ced-a3de-1c9358134f33",
+      "required": true
+    },
+    {
+      "name": "signPlace",
+      "type": "text",
+      "label": "Place of signing",
+      "anchor": {
+        "kind": "marker",
+        "name": "signPlace"
+      },
+      "id": "87c22266-2ae4-4183-bba9-cfc76f3e83e4",
+      "required": true
+    },
+    {
+      "name": "partyA",
+      "type": "text",
+      "label": "Party A",
+      "anchor": {
+        "kind": "marker",
+        "name": "partyA"
+      },
+      "id": "7181ea1b-53c6-4c95-9914-4a8f50d8f2d8",
+      "required": true
+    },
+    {
+      "name": "partyAAddress",
+      "type": "text",
+      "label": "Party A address",
+      "anchor": {
+        "kind": "marker",
+        "name": "partyAAddress"
+      },
+      "id": "53cf6ffc-acea-4ec2-aec0-2bdd599d0949"
+    },
+    {
+      "name": "partyAContact",
+      "type": "text",
+      "label": "Party A contact",
+      "anchor": {
+        "kind": "marker",
+        "name": "partyAContact"
+      },
+      "id": "8b5057fe-9c2f-458f-82a1-25b8c6f68a78"
+    },
+    {
+      "name": "partyB",
+      "type": "text",
+      "label": "Party B",
+      "anchor": {
+        "kind": "marker",
+        "name": "partyB"
+      },
+      "id": "1c88dc54-cbce-46fc-abde-b79beff0a285",
+      "required": true
+    },
+    {
+      "name": "partyBAddress",
+      "type": "text",
+      "label": "Party B address",
+      "anchor": {
+        "kind": "marker",
+        "name": "partyBAddress"
+      },
+      "id": "7ff46d5c-b69c-4904-8e23-02742018140a"
+    },
+    {
+      "name": "partyBContact",
+      "type": "text",
+      "label": "Party B contact",
+      "anchor": {
+        "kind": "marker",
+        "name": "partyBContact"
+      },
+      "id": "c738da7d-b159-4190-b09f-465b909406a0"
+    },
+    {
+      "name": "goods",
+      "type": "text",
+      "label": "Goods",
+      "anchor": {
+        "kind": "marker",
+        "name": "goods"
+      },
+      "id": "55e6d9d4-7fb7-4c86-9886-70e042337161"
+    },
+    {
+      "name": "spec",
+      "type": "text",
+      "label": "Spec",
+      "anchor": {
+        "kind": "marker",
+        "name": "spec"
+      },
+      "id": "a1bf40b7-6072-4d54-977a-56fdea8c5329"
+    },
+    {
+      "name": "qty",
+      "type": "number",
+      "label": "Qty",
+      "anchor": {
+        "kind": "marker",
+        "name": "qty"
+      },
+      "id": "be09611f-8a31-480f-96fc-c2c12325ff62"
+    },
+    {
+      "name": "unitPrice",
+      "type": "number",
+      "label": "Unit price",
+      "anchor": {
+        "kind": "marker",
+        "name": "unitPrice"
+      },
+      "id": "09bc54c5-1ef5-410e-83c5-14b8289d32a3"
+    },
+    {
+      "name": "amount",
+      "type": "number",
+      "label": "Amount",
+      "anchor": {
+        "kind": "marker",
+        "name": "amount"
+      },
+      "id": "851896f8-3449-414c-be37-f867ede03055",
+      "required": true
+    },
+    {
+      "name": "payMethod",
+      "type": "select",
+      "label": "Payment method",
+      "anchor": {
+        "kind": "marker",
+        "name": "payMethod"
+      },
+      "id": "38b41209-ca71-46c4-b695-efb7fac3eb91",
+      "required": true,
+      "options": [
+        {
+          "value": "wire",
+          "label": "Wire transfer"
+        },
+        {
+          "value": "acceptance",
+          "label": "Bank acceptance"
+        },
+        {
+          "value": "check",
+          "label": "Check"
+        }
+      ]
+    },
+    {
+      "name": "payTerm",
+      "type": "text",
+      "label": "Payment term",
+      "anchor": {
+        "kind": "marker",
+        "name": "payTerm"
+      },
+      "id": "d7c6c08c-0f6c-449d-8f09-a58b9b5c9254"
+    },
+    {
+      "name": "deliveryDate",
+      "type": "date",
+      "label": "Delivery date",
+      "anchor": {
+        "kind": "marker",
+        "name": "deliveryDate"
+      },
+      "id": "6b7bf8f6-1450-4b71-93b5-7031a3cd6cc1",
+      "required": true
+    },
+    {
+      "name": "deliveryPlace",
+      "type": "text",
+      "label": "Delivery place",
+      "anchor": {
+        "kind": "marker",
+        "name": "deliveryPlace"
+      },
+      "id": "c5337a00-b6b0-4c9e-ba68-48d61c29e8e2"
+    },
+    {
+      "name": "warranty",
+      "type": "text",
+      "label": "Warranty",
+      "anchor": {
+        "kind": "marker",
+        "name": "warranty"
+      },
+      "id": "50041be6-f733-4c5a-90f5-f0e30443acba"
+    },
+    {
+      "name": "signDate",
+      "type": "date",
+      "label": "Sign date",
+      "anchor": {
+        "kind": "marker",
+        "name": "signDate"
+      },
+      "id": "6355d9f5-02ec-4b60-8b65-54e36b929d99",
+      "required": true
+    },
+    {
+      "name": "note",
+      "type": "textarea",
+      "label": "Notes",
+      "anchor": {
+        "kind": "marker",
+        "name": "note"
+      },
+      "id": "20c2bb30-51e4-478c-8f2c-2dc1ac8be083"
+    }
+  ]
+}

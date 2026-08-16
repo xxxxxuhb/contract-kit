@@ -1,0 +1,26 @@
+{
+  "name": "contract-kit-workspace",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @contract-kit/kernel && npm run build -w @contract-kit/docx && npm run build -w @contract-kit/xlsx && npm run build -w @contract-kit/ui && npm run build -w @contract-kit/pdf && npm run build -w contract-kit",
+    "typecheck": "npm run build -w @contract-kit/kernel && npm run typecheck -w @contract-kit/kernel && npm run typecheck -w @contract-kit/docx && npm run typecheck -w @contract-kit/xlsx && npm run typecheck -w @contract-kit/ui && npm run typecheck -w @contract-kit/pdf && npm run typecheck -w contract-kit",
+    "test": "npm run build && tsx --test packages/kernel/test/*.test.ts packages/docx/test/*.test.ts packages/xlsx/test/*.test.ts packages/ui/test/*.test.ts",
+    "example": "npm run example:native",
+    "example:native": "npm run dev -w @contract-kit/example-native-ui",
+    "example:custom": "npm run dev -w @contract-kit/example-custom-ui",
+    "templates": "tsx examples/templates/build.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "jsdom": "^26.0.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

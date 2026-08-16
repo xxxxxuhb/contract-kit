@@ -1,0 +1,53 @@
+{
+  "name": "contract-kit",
+  "version": "0.1.0",
+  "description": "Contract template runtime: kernel + docx/xlsx adapters + framework-free field UI",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./docx": {
+      "types": "./dist/docx.d.ts",
+      "require": "./dist/docx.js",
+      "default": "./dist/docx.js"
+    },
+    "./xlsx": {
+      "types": "./dist/xlsx.d.ts",
+      "require": "./dist/xlsx.js",
+      "default": "./dist/xlsx.js"
+    },
+    "./ui": {
+      "types": "./dist/ui.d.ts",
+      "require": "./dist/ui.js",
+      "default": "./dist/ui.js"
+    },
+    "./ui/style.css": "./dist/style.css",
+    "./pdf": {
+      "types": "./dist/pdf.d.ts",
+      "require": "./dist/pdf.js",
+      "default": "./dist/pdf.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && cp ../ui/dist/style.css dist/style.css",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@contract-kit/docx": "0.1.0",
+    "@contract-kit/kernel": "0.1.0",
+    "@contract-kit/pdf": "0.1.0",
+    "@contract-kit/ui": "0.1.0",
+    "@contract-kit/xlsx": "0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

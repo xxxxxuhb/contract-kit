@@ -1,0 +1,30 @@
+{
+  "name": "@contract-kit/pdf",
+  "version": "0.1.0",
+  "description": "Export filled docx/xlsx to PDF (html2canvas | canvas-draw-element | print)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "docx-preview": "^0.4.0",
+    "exceljs": "^4.4.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@contract-kit/ui",
+  "version": "0.1.0",
+  "description": "Framework-free field controls for contract-kit (native input/select/textarea/date)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && cp src/style.css dist/style.css",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@contract-kit/kernel": "0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

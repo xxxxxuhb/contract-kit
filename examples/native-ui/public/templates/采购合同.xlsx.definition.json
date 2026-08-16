@@ -1,0 +1,247 @@
+{
+  "version": 1,
+  "source": {
+    "kind": "xlsx",
+    "hash": "4ddd68b851ae584034773009608d3d97d54343f13a7e30081dd101f4952d4e0a"
+  },
+  "fields": [
+    {
+      "name": "contractNo",
+      "type": "text",
+      "label": "合同编号",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B4"
+      },
+      "id": "5e5dfd1b-660c-4e82-a508-b1710bdb2346",
+      "required": true
+    },
+    {
+      "name": "signPlace",
+      "type": "text",
+      "label": "签订地点",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B5"
+      },
+      "id": "d21278d5-2759-43b5-a0dc-ff059968ca45"
+    },
+    {
+      "name": "partyA",
+      "type": "text",
+      "label": "甲方",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B6"
+      },
+      "id": "8702bc2b-5650-4d7e-865d-40d5b770aedb",
+      "required": true
+    },
+    {
+      "name": "partyAAddress",
+      "type": "text",
+      "label": "甲方地址",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B7"
+      },
+      "id": "0d236c80-8dff-49bf-8273-16e806bb27a2"
+    },
+    {
+      "name": "partyAContact",
+      "type": "text",
+      "label": "甲方联系人",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B8"
+      },
+      "id": "0236248a-2aae-4bf4-80ef-54f8a2223c46"
+    },
+    {
+      "name": "partyB",
+      "type": "text",
+      "label": "乙方",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B9"
+      },
+      "id": "c3d2cf92-9a5e-4d8e-8719-87a592d70570",
+      "required": true
+    },
+    {
+      "name": "partyBAddress",
+      "type": "text",
+      "label": "乙方地址",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B10"
+      },
+      "id": "4556a7d9-c963-4904-825c-014510234b79"
+    },
+    {
+      "name": "partyBContact",
+      "type": "text",
+      "label": "乙方联系人",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B11"
+      },
+      "id": "f4280ca4-40a9-4ae1-b333-0e69790cb050"
+    },
+    {
+      "name": "goods",
+      "type": "text",
+      "label": "货物名称",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B12"
+      },
+      "id": "4c9d39fa-15b3-455a-8905-827391caa745",
+      "required": true
+    },
+    {
+      "name": "spec",
+      "type": "text",
+      "label": "规格型号",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B13"
+      },
+      "id": "d31c69fc-7387-48d6-b82c-fb4420d3ff90"
+    },
+    {
+      "name": "qty",
+      "type": "number",
+      "label": "数量",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B14"
+      },
+      "id": "235ec7f6-e9a8-4f12-92f2-00039363738f"
+    },
+    {
+      "name": "unitPrice",
+      "type": "number",
+      "label": "单价",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B15"
+      },
+      "id": "a4819656-c559-459a-9ae9-2219fb3fb486"
+    },
+    {
+      "name": "amount",
+      "type": "number",
+      "label": "合同金额",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B16"
+      },
+      "id": "86f15a8d-3b9c-4305-b58c-a700346598ed"
+    },
+    {
+      "name": "payMethod",
+      "type": "select",
+      "label": "付款方式",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B17"
+      },
+      "id": "e5be1849-548f-46c6-bed0-0f655e1169d7",
+      "options": [
+        {
+          "value": "wire",
+          "label": "电汇"
+        },
+        {
+          "value": "acceptance",
+          "label": "承兑汇票"
+        },
+        {
+          "value": "check",
+          "label": "支票"
+        }
+      ]
+    },
+    {
+      "name": "payTerm",
+      "type": "text",
+      "label": "付款期限",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B18"
+      },
+      "id": "3f4a1f1f-4c6e-437d-a2a7-f7829c6b6bdd"
+    },
+    {
+      "name": "deliveryDate",
+      "type": "date",
+      "label": "交货日期",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B19"
+      },
+      "id": "10439bb0-a04f-4513-9516-2690d485569b"
+    },
+    {
+      "name": "deliveryPlace",
+      "type": "text",
+      "label": "交货地点",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B20"
+      },
+      "id": "19e71030-3b0f-44aa-94ce-ba242e918cb1"
+    },
+    {
+      "name": "warranty",
+      "type": "text",
+      "label": "质保期限",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B21"
+      },
+      "id": "3e172165-73ac-4777-9623-44853e7699a6"
+    },
+    {
+      "name": "signDate",
+      "type": "date",
+      "label": "签订日期",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B22"
+      },
+      "id": "adc7f4d1-16a0-49c6-8d30-e0c3bf6573b8"
+    },
+    {
+      "name": "note",
+      "type": "textarea",
+      "label": "备注",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B23"
+      },
+      "id": "45d3a5c4-ab51-42ee-ae0a-8ece83d930b2"
+    }
+  ]
+}
