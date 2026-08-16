@@ -2,6 +2,27 @@
 
 本仓库按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 记录公开 API 变化。版本遵循 semver；`0.x` 仍可能有破坏性调整。
 
+## 0.1.2 — 2026-08-16
+
+伞包 `paperfill@0.1.2`，内核 `@paperfill/kernel@0.1.1`。
+
+### Added
+
+- `Field.outputFormat` / `FieldColumn.outputFormat`：导出时格式化日期、数字、选项文案；`data` 仍存规范值。
+- `createKernel({ formatters })`：按名字注册自定义格式（如金额大写）。
+- `getExportData()` / `formatData` / `formatFieldValue`：查看或复用导出用数据。
+- npm 包内 README（安装、场景、前后端配合）。
+
+### Changed
+
+- 文档标记约定改为只写锚点：`{{name}}` / `{{items.qty}}`。`type`、`label`、`options`、`outputFormat` 都在 definition。
+- `{{name:type}}` 仍能解析，仅作第一次 `load` 的类型提示；`hydrate` 以 definition 为准。
+
+### Notes
+
+- `outputFormat` 无默认值；不写则导出与 `data` 相同。
+- 内置格式：`YYYY年MM月DD日` / `DD/MM/YYYY` / `DD日MM月YYYY年`、`#,##0.00`、`label`。
+
 ## 0.1.0
 
 ### Added

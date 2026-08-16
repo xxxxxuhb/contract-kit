@@ -1,6 +1,6 @@
 {
   "name": "paperfill",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "在 Word / Excel 原文排版上填写合同。Headless contract template runtime for docx/xlsx.",
   "keywords": [
     "contract",
@@ -75,7 +75,7 @@
   },
   "dependencies": {
     "@paperfill/docx": "0.1.0",
-    "@paperfill/kernel": "0.1.0",
+    "@paperfill/kernel": "0.1.1",
     "@paperfill/pdf": "0.1.0",
     "@paperfill/react": "0.1.0",
     "@paperfill/ui": "0.1.0",
