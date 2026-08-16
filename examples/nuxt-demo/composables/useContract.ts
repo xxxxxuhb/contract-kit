@@ -1,14 +1,14 @@
 import { onUnmounted, ref, shallowRef } from 'vue'
 import {
   createKernel,
+  DocxAdapter,
+  XlsxAdapter,
   type FormSchema,
   type Kernel,
   type PreviewModel,
   type TemplateDefinition,
   type ValidationResult,
-} from '@contract-kit/kernel'
-import { DocxAdapter } from '@contract-kit/docx'
-import { XlsxAdapter } from '@contract-kit/xlsx'
+} from 'contract-kit'
 
 export type ContractSummary = {
   id: string
@@ -101,6 +101,18 @@ export function useContract() {
     await current.dispatch({ type: 'setValue', path, value })
   }
 
+  async function insertRow(table: string, index?: number, row?: Record<string, unknown>) {
+    const current = kernel.value
+    if (!current) return
+    await current.dispatch({ type: 'insertRow', table, index, row })
+  }
+
+  async function removeRow(table: string, index: number) {
+    const current = kernel.value
+    if (!current) return
+    await current.dispatch({ type: 'removeRow', table, index })
+  }
+
   async function exportFile() {
     const current = kernel.value
     if (!current) throw new Error('尚未打开合同')
@@ -146,6 +158,8 @@ export function useContract() {
     loadList,
     openContract,
     setValue,
+    insertRow,
+    removeRow,
     exportFile,
     validate,
     getData,

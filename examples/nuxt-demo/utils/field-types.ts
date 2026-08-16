@@ -1,4 +1,4 @@
-import type { FormSchemaField, ValidationResult } from '@contract-kit/kernel'
+import type { FormSchemaField, ValidationResult } from 'contract-kit'
 
 export type FieldMountContext = {
   name: string

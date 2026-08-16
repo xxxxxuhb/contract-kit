@@ -10,15 +10,13 @@ npm i contract-kit
 
 | 导入路径 | 内容 |
 |----------|------|
-| `contract-kit` | `createKernel`、标记工具、kernel 类型 |
-| `contract-kit/docx` | `DocxAdapter` |
-| `contract-kit/xlsx` | `XlsxAdapter` / `mountXlsxPreview` |
-| `contract-kit/xlsx/style.css` | Excel 预览表格骨架样式 |
-| `contract-kit/ui` | `createField` / `mountField` |
+| `contract-kit` | **全部 API**：`createKernel`、`DocxAdapter` / `mountDocxPreview`、`XlsxAdapter` / `mountXlsxPreview`、`nativeFieldMounter`、`exportFilledDocument`、类型与 persist |
 | `contract-kit/ui/style.css` | 原生字段样式 |
-| `contract-kit/pdf` | `exportFilledDocument` 等 |
+| `contract-kit/xlsx/style.css` | Excel 预览表格骨架样式 |
+| `contract-kit/vue` | `useContractKit`（需 Vue 3 peer） |
+| `contract-kit/react` | `useContractKit`（需 React ≥18 peer） |
 
-等价子包：`@contract-kit/kernel`、`docx`、`xlsx`、`ui`、`pdf`。也可直接 `import 'contract-kit/xlsx/style.css'` / `@contract-kit/xlsx/style.css`。
+接入方只装 `contract-kit`，业务代码只从 `contract-kit` 取 API。仓库内 `@contract-kit/*` 是实现拆包，不必再单独安装。子路径仅用于 **CSS** 和 **Vue/React 封装**。
 
 ---
 
@@ -44,7 +42,7 @@ npm i contract-kit
 支持的 `type`：`text` | `textarea` | `number` | `date` | `select` | `multiselect` | `table` | `image` | `display`。
 
 > `label` / `required` / `options` / 表 `columns` **不在标记里**，写在 `TemplateDefinition`。  
-> `image` 类型仅预留，尚未实现嵌图。  
+> `image`：data 为 data URL（`data:image/png;base64,...`）；`bind` / `export` 会嵌入 Word drawing / Excel 单元格图。  
 > `display`：纯展示，data 仍可 `setValue` / 导出替换，预览不渲染输入框（适合联动结果、系统填入的日期等）。
 
 ### 循环明细表
@@ -72,7 +70,15 @@ npm i contract-kit
 - `items` — 整表数组  
 - `items.0.qty` — 单元格  
 
-导出时 docx/xlsx 按数组长度克隆模板行。校验：`table.required` → 非空数组；列 `required` → `items.i.col`。
+也可用一等公民命令：
+
+```ts
+await kernel.dispatch({ type: 'insertRow', table: 'items', row: { name: '苹果' } })
+await kernel.dispatch({ type: 'insertRow', table: 'items', index: 0 })
+await kernel.dispatch({ type: 'removeRow', table: 'items', index: 0 })
+```
+
+导出 / 预览按数组长度克隆模板行；**空表保留一行空白占位**（不删行模板），便于继续填。校验：`table.required` → 非空数组；列 `required` → `items.i.col`。
 
 辅助函数（`contract-kit`）：
 
@@ -81,7 +87,11 @@ npm i contract-kit
 | `parseMarkers(text)` | 解析去重后的标记列表 |
 | `aggregateMarkerFields(markers)` | 将 `items.col` 聚成一个 `table` 字段 + columns |
 | `splitByMarkers(text)` | 拆成 `text` / `field` 段（预览挂控件用） |
-| `replaceMarkers(text, data)` | 用 data 替换扁平标记 |
+| `replaceMarkers(text, data, options?)` | 用 data 替换扁平标记；`options.missing` 为 `blank` 时清空未写入的标记 |
+| `rowsForExpand(value)` | 空表 → `[{}]` 占位行 |
+| `toPersistBundle(kernel)` | `{ file, definition, data }` |
+| `hydrateFromBundle(bundle)` | 生成 `hydrate` 命令 |
+| `snapshotKernel(kernel)` | UI 只读快照 |
 | `replaceRowMarkers(text, table, row, index)` | 替换一行内的 `table.col` / `$index` |
 | `stringifyFieldValue(value)` | 导出时把值转成字符串 |
 
@@ -110,7 +120,17 @@ interface Field {
   required?: boolean
   options?: { value: string; label: string }[]
   columns?: FieldColumn[] // type === 'table'
+  rules?: FieldRules
   anchor: Anchor
+}
+
+interface FieldRules {
+  min?: number
+  max?: number
+  minLength?: number
+  maxLength?: number
+  pattern?: string
+  dateFormat?: boolean // YYYY-MM-DD
 }
 
 interface FieldColumn {
@@ -119,6 +139,7 @@ interface FieldColumn {
   label?: string
   required?: boolean
   options?: FieldOption[]
+  rules?: FieldRules
 }
 ```
 
@@ -151,6 +172,9 @@ interface ValidationResult {
 1. `required` 且值为 `undefined` / `null` / `''` →「必填」
 2. `select` 有值但不在 `options` →「不在选项中」
 3. `table.required` 且数组为空 →「必填」；列 `required` → `items.0.name` 等路径
+4. `date` 有值且不是 `YYYY-MM-DD`
+5. `rules`：`min`/`max`、`minLength`/`maxLength`、`pattern`、`dateFormat`
+6. `createKernel({ validators })`：自定义 / 跨字段，返回 `{ path, message }` 或数组
 
 ### `FormSchema`
 
@@ -167,8 +191,7 @@ interface FormSchema {
 ## Kernel
 
 ```ts
-import { createKernel } from 'contract-kit'
-import { DocxAdapter } from 'contract-kit/docx'
+import { createKernel, DocxAdapter } from 'contract-kit'
 
 const kernel = createKernel({ adapter: new DocxAdapter() })
 ```
@@ -210,13 +233,15 @@ type DispatchResult =
 | `{ type: 'setValue', path, value }` | 写单个字段 | `ok` |
 | `{ type: 'setData', data }` | 整表替换 data | `ok` |
 | `{ type: 'resetData' }` | 清空 data | `ok` |
+| `{ type: 'insertRow', table, index?, row? }` | 明细表增行（`index` 缺省为末尾） | `ok` |
+| `{ type: 'removeRow', table, index }` | 明细表删行 | `ok` |
 | `{ type: 'export', format? }` | bind 后导出新文件（不改原 buffer） | `exported` |
 
 说明：
 
 - `load`：适合「只有文件」；业务 options / 必填需再 hydrate 或 `updateField`。
-- `hydrate`：已发布模板主路径；`source.kind` 须与 adapter 一致。
-- `export`：在**副本**上替换标记；`getSource().buffer` 不变。
+- `hydrate`：已发布模板主路径；`source.kind` 须与 adapter 一致。见下方「hydrate 三件套」。
+- `export`：在**副本**上替换标记并扩行/嵌图；未写入 `data` 的扁平标记导出时清空（与预览空槽一致）；`getSource().buffer` 不变。
 
 ### 事件 `KernelEvent`
 
@@ -259,12 +284,25 @@ interface DocumentAdapter {
 
 | 类 / API | 导入 | 说明 |
 |----------|------|------|
-| `DocxAdapter` | `contract-kit/docx` | OOXML / JSZip；按 `{{marker}}` bind |
-| `XlsxAdapter` | `contract-kit/xlsx` | ExcelJS；单元格文本中的标记；`getPreview` 含 `style`（背景/字体色等） |
-| `mountXlsxPreview` | `contract-kit/xlsx` | 把 `getPreview()` 的 sheets 渲成表格 DOM，业务只注入 `mountField` |
+| `DocxAdapter` | `contract-kit` | OOXML / JSZip；按 `{{marker}}` bind |
+| `mountDocxPreview` | `contract-kit` | 用 `docx-preview` 渲原 buffer，扫 `{{marker}}` 挂槽位；业务只注入 `mountField` |
+| `XlsxAdapter` | `contract-kit` | ExcelJS；单元格文本中的标记；`getPreview` 含 `style`（背景/字体色等） |
+| `mountXlsxPreview` | `contract-kit` | 把 `getPreview()` 的 sheets 渲成表格 DOM，业务只注入 `mountField` |
 
 ```ts
-import { XlsxAdapter, mountXlsxPreview } from 'contract-kit/xlsx'
+import { mountDocxPreview } from 'contract-kit'
+
+const handle = mountDocxPreview(container, {
+  buffer: source.buffer,
+  fields: kernel.getFormSchema().fields,
+  validation: kernel.validate(),
+  mountField: myMounter,
+  onChange: (path, value) => kernel.dispatch({ type: 'setValue', path, value }),
+})
+```
+
+```ts
+import { XlsxAdapter, mountXlsxPreview } from 'contract-kit'
 import 'contract-kit/xlsx/style.css'
 
 const preview = kernel.getPreview()
@@ -273,7 +311,7 @@ if (preview?.kind === 'xlsx') {
     sheets: preview.sheets,
     fields: kernel.getFormSchema().fields,
     validation: kernel.validate(),
-    mountField: myMounter, // 或包一层 @contract-kit/ui 的 mountField
+    mountField: myMounter, // 或 nativeFieldMounter
     onChange: (path, value) => kernel.dispatch({ type: 'setValue', path, value }),
   })
   // handle.update({ sheets, fields, validation }); handle.destroy()
@@ -284,12 +322,12 @@ if (preview?.kind === 'xlsx') {
 
 ---
 
-## `@contract-kit/ui`（可选）
+## 原生字段 UI（可选）
 
 框架无关原生控件。
 
 ```ts
-import { createField, mountField } from 'contract-kit/ui'
+import { createField, mountField } from 'contract-kit'
 import 'contract-kit/ui/style.css'
 
 const handle = mountField(slotEl, {
@@ -308,6 +346,7 @@ handle.destroy()
 |-----|------|
 | `createField(options)` | 创建控件，返回 `FieldHandle`（含 `el`） |
 | `mountField(parent, options)` | 创建并挂到 `parent` |
+| `nativeFieldMounter(container, ctx)` | 直接当作 `mountDocxPreview` / `mountXlsxPreview` 的 `mountField` |
 
 `FieldHandle`：`el` / `update` / `destroy`。
 
@@ -315,12 +354,12 @@ handle.destroy()
 
 ---
 
-## `@contract-kit/pdf`（可选，浏览器）
+## PDF（可选，浏览器）
 
 对 **已 `export` 的文件** 再转 PDF（不是截填写页表单 DOM）。
 
 ```ts
-import { exportFilledDocument, supportsCanvasDrawElement } from 'contract-kit/pdf'
+import { exportFilledDocument, supportsCanvasDrawElement } from 'contract-kit'
 
 const filled = await kernel.dispatch({ type: 'export' })
 if (filled.type !== 'exported') throw new Error('export failed')
@@ -367,6 +406,54 @@ interface ExportPdfOptions {
 | `html2canvas` | DOM → canvas → jsPDF 字节 |
 | `canvas-draw-element` | 需开启 `chrome://flags/#canvas-draw-element` |
 | `print` | `window.print()`，无文件字节 |
+
+---
+
+## hydrate 三件套
+
+接入方只持久化这三样，恢复用 `hydrate`（不要把填写结果写回原 Word/Excel 当唯一真相）：
+
+| 产物 | 来源 |
+|------|------|
+| `file` | `kernel.getSource().buffer`（原始模板，未被 export 改写） |
+| `definition` | `kernel.getDefinition()` |
+| `data` | `kernel.getData()` |
+
+```ts
+import { hydrateFromBundle, toPersistBundle } from 'contract-kit'
+
+const bundle = toPersistBundle(kernel)
+if (bundle) await save(bundle)
+
+await kernel.dispatch(hydrateFromBundle(bundle))
+```
+
+`snapshotKernel(kernel)` 给 UI 一层只读快照（schema / data / validation / preview）。
+
+---
+
+## Vue / React
+
+薄封装，只订阅 kernel；文档布局仍走 `mountDocxPreview` / `mountXlsxPreview`。
+
+```ts
+import { useContractKit } from 'contract-kit/vue'
+// import { useContractKit } from 'contract-kit/react'
+
+const { schema, data, validation, preview } = useContractKit(kernel)
+```
+
+等价子包：`@contract-kit/vue`、`@contract-kit/react`（peer：Vue 3 / React ≥18）。
+
+### SSR 边界
+
+| 可在服务端 | 仅浏览器（`ClientOnly` / `useEffect` 后） |
+|------------|------------------------------------------|
+| `createKernel` / `dispatch` / `hydrate` / `validate` / `export` | `mountDocxPreview` / `mountXlsxPreview` |
+| `toPersistBundle` / `snapshotKernel` | `@contract-kit/ui` 的 `mountField` |
+| 读 `definition` / `data` | `@contract-kit/pdf` |
+
+Nuxt 示例用 `<ClientOnly>` 包文档宿主。
 
 ---
 

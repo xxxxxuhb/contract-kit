@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { nativeFieldMounter } from '~/utils/native-mounter'
-import { downloadBuffer } from '~/utils/download'
+import { downloadBuffer, downloadFilledPdf, officeMime } from '~/utils/export-file'
 
 const {
   list,
@@ -14,15 +14,22 @@ const {
   loadList,
   openContract,
   setValue,
+  insertRow,
+  removeRow,
   exportFile,
   validate,
   reset,
 } = useContract()
 
-const busy = ref(false)
+const busy = ref<'docx' | 'xlsx' | 'pdf' | null>(null)
 const validateMsg = ref<string | null>(null)
 
 const xlsxSheets = computed(() => (preview.value?.kind === 'xlsx' ? preview.value.sheets : []))
+const tableFields = computed(() => schema.value.fields.filter((field) => field.type === 'table'))
+
+function tableLength(field: { value?: unknown }) {
+  return Array.isArray(field.value) ? field.value.length : 0
+}
 
 onMounted(() => {
   void loadList().catch((err) => {
@@ -46,21 +53,28 @@ function onValidate() {
     : `校验未通过：${result.issues.map((i) => `${i.path} ${i.message}`).join('；')}`
 }
 
-async function onExport() {
-  busy.value = true
+async function onExportOffice(format: 'docx' | 'xlsx') {
+  if (payload.value?.kind !== format) return
+  busy.value = format
   try {
     const file = await exportFile()
-    downloadBuffer(
-      `${payload.value?.title ?? 'contract'}.${file.format}`,
-      file.buffer,
-      file.format === 'docx'
-        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    )
+    downloadBuffer(`${payload.value?.title ?? 'contract'}.${file.format}`, file.buffer, officeMime(file.format))
   } catch (err) {
     validateMsg.value = err instanceof Error ? err.message : '导出失败'
   } finally {
-    busy.value = false
+    busy.value = null
+  }
+}
+
+async function onExportPdf() {
+  busy.value = 'pdf'
+  try {
+    const file = await exportFile()
+    await downloadFilledPdf(payload.value?.title ?? 'contract', file.format, file.buffer)
+  } catch (err) {
+    validateMsg.value = err instanceof Error ? err.message : '导出 PDF 失败'
+  } finally {
+    busy.value = null
   }
 }
 
@@ -76,14 +90,30 @@ function onClose() {
       <div>
         <h1>contract-kit · Nuxt · 原生 UI</h1>
         <p>
-          @contract-kit/ui · 校验 = kernel.validate() ·
+          contract-kit · 校验 = kernel.validate() ·
           <NuxtLink to="/custom">自定义 UI（Element Plus）→</NuxtLink>
         </p>
       </div>
       <div v-if="payload" class="header-actions">
         <button type="button" class="btn btn-primary" @click="onValidate">校验</button>
-        <button type="button" class="btn" :disabled="busy" @click="onExport">
-          导出 {{ payload.kind === 'docx' ? 'Word' : 'Excel' }}
+        <button
+          type="button"
+          class="btn"
+          :disabled="Boolean(busy) || payload.kind !== 'docx'"
+          @click="onExportOffice('docx')"
+        >
+          {{ busy === 'docx' ? '导出中…' : '导出 Word' }}
+        </button>
+        <button
+          type="button"
+          class="btn"
+          :disabled="Boolean(busy) || payload.kind !== 'xlsx'"
+          @click="onExportOffice('xlsx')"
+        >
+          {{ busy === 'xlsx' ? '导出中…' : '导出 Excel' }}
+        </button>
+        <button type="button" class="btn" :disabled="Boolean(busy)" @click="onExportPdf">
+          {{ busy === 'pdf' ? '导出中…' : '导出 PDF' }}
         </button>
         <button type="button" class="btn" @click="onClose">关闭</button>
       </div>
@@ -120,6 +150,21 @@ function onClose() {
           <div class="banner" :class="validation.ok ? 'ok' : 'error'">
             实时：{{ validation.ok ? '通过' : validation.issues.map((i) => i.path).join(', ') }}
           </div>
+          <template v-if="tableFields.length">
+            <h3>明细表</h3>
+            <div v-for="field in tableFields" :key="field.id" class="table-block">
+              <p class="table-title">{{ field.label ?? field.name }} · {{ tableLength(field) }} 行</p>
+              <button type="button" class="btn" @click="insertRow(field.name)">加一行</button>
+              <button
+                type="button"
+                class="btn"
+                :disabled="tableLength(field) === 0"
+                @click="removeRow(field.name, tableLength(field) - 1)"
+              >
+                删末行
+              </button>
+            </div>
+          </template>
         </aside>
         <div class="doc-frame">
           <ClientOnly>

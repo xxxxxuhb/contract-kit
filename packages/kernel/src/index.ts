@@ -10,8 +10,12 @@ export {
   tableNamesInText,
   textHasTableMarkers,
 } from './markers'
-export type { MarkerSegment, ParsedMarker, TableColumnRef } from './markers'
-export { cloneData, setDataPath } from './path'
+export type { MarkerSegment, ParsedMarker, ReplaceMarkersOptions, TableColumnRef } from './markers'
+export { isImageDataUrl, parseDataUrl } from './image'
+export type { ParsedDataUrl } from './image'
+export { cloneData, insertTableRow, removeTableRow, rowsForExpand, setDataPath } from './path'
+export { hydrateFromBundle, snapshotKernel, toPersistBundle } from './persist'
+export type { KernelSnapshot, PersistBundle } from './persist'
 export type {
   Anchor,
   Command,
@@ -24,7 +28,9 @@ export type {
   Field,
   FieldColumn,
   FieldOption,
+  FieldRules,
   FieldType,
+  FieldValidator,
   FormSchema,
   FormSchemaField,
   Kernel,

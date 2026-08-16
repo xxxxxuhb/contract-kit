@@ -67,12 +67,12 @@ test('expandTableRows clones template w:tr for each data row', () => {
   assert.doesNotMatch(bound, /\{\{/)
 })
 
-test('expandTableRows removes template row when array is empty', () => {
+test('expandTableRows keeps a blank placeholder row when array is empty', () => {
   const xml = `<w:tbl>
     <w:tr><w:tc><w:p><w:r><w:t>H</w:t></w:r></w:p></w:tc></w:tr>
     <w:tr><w:tc><w:p><w:r><w:t>{{items.name}}</w:t></w:r></w:p></w:tc></w:tr>
   </w:tbl>`
   const out = expandTableRows(xml, { items: [] })
-  assert.equal((out.match(/<w:tr>/g) ?? []).length, 1)
+  assert.equal((out.match(/<w:tr>/g) ?? []).length, 2)
   assert.doesNotMatch(out, /\{\{/)
 })

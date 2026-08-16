@@ -25,9 +25,10 @@ contract-kit/
   packages/
     contract-kit   # 伞包：默认 re-export kernel（子路径见各自 package）
     kernel         # 状态机：Command / State / Schema / View / Preview 缓存
-    docx           # Word adapter：扫 {{marker}}、bind、export、getPreview
-    xlsx           # Excel adapter：单元格标记、合并预览、bind、export
-    ui             # 可选：框架无关原生 createField / mountField
+    docx           # Word adapter：扫 {{marker}}、bind、export、getPreview、mountDocxPreview
+    xlsx           # Excel adapter：单元格标记、合并预览、bind、export、mountXlsxPreview
+    ui             # 可选：框架无关原生 createField / mountField / nativeFieldMounter
+    vue / react    # 可选：useContractKit 订阅快照（peer 框架）
     pdf            # 可选（浏览器）：已填写 docx/xlsx → PDF
   examples/
     nuxt-demo      # Nuxt：原生 / + 自定义 /custom；Nitro 模拟 API（:5210）
@@ -38,9 +39,10 @@ contract-kit/
 | 包 | 做 | 不做 |
 |----|----|------|
 | `kernel` | 状态、命令、校验、schema/view、缓存 preview | DOM、框架、解析 OOXML |
-| `docx` | load / discoverFields / getPreview(blocks) / bind / export | 存业务 data、字段控件 |
+| `docx` | load / discoverFields / getPreview(blocks) / bind / export / **`mountDocxPreview` 文档布局** | 存业务 data、字段控件 |
 | `xlsx` | load / discoverFields / getPreview(含单元格样式) / bind / export / **`mountXlsxPreview` 表格布局** | 存业务 data、字段控件 |
-| `ui` | 原生控件（含 select / multiselect / display / image 选文件） | 绑死 Vue/React、文档排版 |
+| `ui` | 原生控件（含 select / multiselect / display / image 选文件）+ `nativeFieldMounter` | 绑死某一框架、文档排版 |
+| `vue` / `react` | `useContractKit` 订阅 schema/data/validation | 自绘字段、改 OOXML |
 | `pdf` | 浏览器里把**已导出文件**渲成 PDF | 服务端 Office 矢量转换、改 kernel 状态 |
 | 页面 | 上传、OSS、权限、注入 FieldMounter | 直接改 zip/OOXML；自绘 Excel 表格 |
 
@@ -52,13 +54,13 @@ contract-kit/
 flowchart TB
   subgraph Page["接入方页面 / examples"]
     Shell["壳：打开 / hydrate / 导出"]
-    DocxLayout["Word：docx-preview 原 buffer<br/>→ 扫 {{marker}} → FieldMounter"]
+    DocxHost["Word：mountDocxPreview + FieldMounter"]
     FieldUI["字段 UI：@contract-kit/ui<br/>或自绘 Element/自有组件"]
   end
 
   subgraph Core["运行时"]
     Kernel["@contract-kit/kernel<br/>dispatch / get* / subscribe"]
-    Docx["DocxAdapter"]
+    Docx["DocxAdapter + mountDocxPreview"]
     Xlsx["XlsxAdapter + mountXlsxPreview"]
   end
 
@@ -67,7 +69,7 @@ flowchart TB
   end
 
   Shell -->|Command| Kernel
-  DocxLayout --> Kernel
+  Docx -->|"文档布局 + 槽位"| FieldUI
   Xlsx -->|"表格布局 + 槽位"| FieldUI
   FieldUI -->|setValue| Kernel
   Kernel --> Docx
@@ -77,7 +79,7 @@ flowchart TB
   Xlsx --> XLSX[".xlsx / ExcelJS"]
 ```
 
-**字段 UI 与布局解耦：** Excel 表格由 `@contract-kit/xlsx` 的 `mountXlsxPreview` 渲染（含背景/字体色）；接入方只向槽位 `mount` 控件。Word 可视布局目前仍在页面侧（`docx-preview`），docx 包提供结构化 `getPreview`。
+**字段 UI 与布局解耦：** Word 用 `mountDocxPreview` 渲原文件并挂槽位；Excel 用 `mountXlsxPreview` 渲表格（含背景/字体色）。接入方只向槽位 `mount` 控件。以上 API 均从 `contract-kit` 导入。
 
 **字段 UI 与 kernel 解耦：** kernel 只产出 `FormSchema`；谁往槽位里 `mount` 控件由接入方决定。`ui` 是默认实现，不是必选。
 
@@ -261,7 +263,7 @@ sequenceDiagram
 
 | 目录 / 路径 | 说明 |
 |-------------|------|
-| `examples/nuxt-demo` `/` | 原生 UI；「校验」→ `kernel.validate()` |
+| `examples/nuxt-demo` `/` | 只依赖 `contract-kit`；原生 UI；「校验」→ `kernel.validate()` |
 | `examples/nuxt-demo` `/custom` | Element Plus；「校验」→ `el-form` rules |
 | `examples/templates` | Word / Excel 全类型模板 |
 | `examples/mock` | Nitro API 共用数据 |
@@ -280,6 +282,19 @@ sequenceDiagram
 
 ## 待办
 
-- [ ] **image 字段嵌图**：预览侧可选文件写入 data（data URL）；docx/xlsx `bind` 真正插入图片尚未做。
-- [x] **循环明细表**：`{{items.col}}` 行模板 + `data.items[]`；docx/xlsx bind 扩行；预览按业务 data 行数渲染，行内字段可填（行数由业务 `setValue('items', rows)` 控制）。
+库自身缺口（不含 ExcelJS / docx-preview / html2canvas 等第三方上限）：
+
+- [x] **Word 布局 API**：`mountDocxPreview`（docx-preview 版式 + 槽位水合）；接入方只注入 FieldMounter。
+- [x] **image bind / 导出嵌图**：data URL → Word `w:drawing` / Excel 单元格图。
+- [x] **可扩展校验**：`Field.rules`（min/max/长度/正则/日期）+ `createKernel({ validators })` 跨字段。
+- [x] **锚点写回文档**：`insertField` 在 Word 文末 / Excel 新行写入 `{{name}}`；`updateField` 改标记；`removeField` 删标记。
+- [x] **预览与导出一致**：填写页（原文件+槽位）与 `export`（文本替换+扩行+嵌图）对齐；未填扁平标记导出清空；空表两边各留一行占位。版式仍受 docx-preview / ExcelJS 第三方上限约束。
+- [x] **表格行 API**：`insertRow` / `removeRow`；空表预览/导出保留一行空白占位（UI 仍可由业务做）。
+- [x] **接入面**：`@contract-kit/vue` / `react` 的 `useContractKit`；`toPersistBundle` / `hydrateFromBundle` / `snapshotKernel`；SSR 边界见 api.md；umbrella 子路径 + [CHANGELOG](../CHANGELOG.md)。
+
+已完成：
+
+- [x] **循环明细表**：`{{items.col}}` 行模板 + `data.items[]`；docx/xlsx bind 扩行；预览按 data 行数渲染（空表一行占位）；行数由 `insertRow` / `removeRow` / `setValue` 控制。
 - [x] **Nuxt 示例**：`npm run example`（`/` 原生 UI + `/custom` Element Plus）。
+- [x] **Excel 布局进 xlsx**：`mountXlsxPreview` + `getPreview` 单元格颜色。
+- [x] **Word 布局进 docx**：`mountDocxPreview`（demo `DocxLayout` 仅为薄宿主）。

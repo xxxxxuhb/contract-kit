@@ -1,6 +1,7 @@
 import {
   replaceMarkers,
   replaceRowMarkers,
+  rowsForExpand,
   tableNamesInText,
   textHasTableMarkers,
 } from '@contract-kit/kernel'
@@ -63,9 +64,10 @@ function writeParagraphText(paragraph: string, replaced: string): string {
 }
 
 function applyMarkersInParagraph(paragraph: string, data: Record<string, unknown>): string {
+  if (paragraph.includes('<w:drawing')) return paragraph
   const joined = joinTextNodes(paragraph)
   if (!joined.includes('{{')) return paragraph
-  const replaced = replaceMarkers(joined, data)
+  const replaced = replaceMarkers(joined, data, { missing: 'blank' })
   if (replaced === joined) return paragraph
   return writeParagraphText(paragraph, replaced)
 }
@@ -127,13 +129,6 @@ function findClosing(xml: string, start: number, tag: string): number {
   return i
 }
 
-function asRow(value: unknown): Record<string, unknown> {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as Record<string, unknown>
-  }
-  return {}
-}
-
 function fillTemplateRow(
   trXml: string,
   tableName: string,
@@ -157,7 +152,7 @@ export function expandTableRows(xml: string, data: Record<string, unknown>): str
 }
 
 function expandOneTable(xml: string, tableName: string, value: unknown): string {
-  const rows = Array.isArray(value) ? value.map(asRow) : []
+  const rows = rowsForExpand(value)
   const parts: string[] = []
   let last = 0
   let i = 0

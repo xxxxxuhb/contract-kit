@@ -62,3 +62,35 @@ export function setDataPath(
   cursor[last] = value
   return next
 }
+
+function asRows(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) return []
+  return value.map((row) =>
+    row && typeof row === 'object' && !Array.isArray(row) ? { ...(row as Record<string, unknown>) } : {},
+  )
+}
+
+export function insertTableRow(
+  data: Record<string, unknown>,
+  table: string,
+  index?: number,
+  row: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const rows = asRows(data[table])
+  const at = index == null ? rows.length : Math.max(0, Math.min(index, rows.length))
+  rows.splice(at, 0, { ...row })
+  return { ...cloneData(data), [table]: rows }
+}
+
+export function removeTableRow(data: Record<string, unknown>, table: string, index: number): Record<string, unknown> {
+  const rows = asRows(data[table])
+  if (index < 0 || index >= rows.length) return cloneData(data)
+  rows.splice(index, 1)
+  return { ...cloneData(data), [table]: rows }
+}
+
+/** Preview / export expand: empty tables keep one blank placeholder row. */
+export function rowsForExpand(value: unknown): Record<string, unknown>[] {
+  const rows = asRows(value)
+  return rows.length === 0 ? [{}] : rows
+}

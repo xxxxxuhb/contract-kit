@@ -42,6 +42,18 @@ export interface FieldColumn {
   label?: string
   required?: boolean
   options?: FieldOption[]
+  rules?: FieldRules
+}
+
+/** Declarative extra checks beyond required / select∈options. */
+export interface FieldRules {
+  min?: number
+  max?: number
+  minLength?: number
+  maxLength?: number
+  pattern?: string
+  /** YYYY-MM-DD */
+  dateFormat?: boolean
 }
 
 export interface Field {
@@ -53,6 +65,7 @@ export interface Field {
   options?: FieldOption[]
   /** Present when type === 'table' */
   columns?: FieldColumn[]
+  rules?: FieldRules
   anchor: Anchor
 }
 
@@ -93,6 +106,7 @@ export interface FormSchemaField {
   required: boolean
   options?: FieldOption[]
   columns?: FieldColumn[]
+  rules?: FieldRules
   value: unknown
 }
 
@@ -205,6 +219,8 @@ export type Command =
   | { type: 'setValue'; path: string; value: unknown }
   | { type: 'setData'; data: Record<string, unknown> }
   | { type: 'resetData' }
+  | { type: 'insertRow'; table: string; index?: number; row?: Record<string, unknown> }
+  | { type: 'removeRow'; table: string; index: number }
   | { type: 'export'; format?: 'docx' | 'xlsx' }
 
 export type DispatchResult =
@@ -226,6 +242,13 @@ export interface Kernel {
   setViewport(viewport: ViewportPort | null): void
 }
 
+export type FieldValidator = (ctx: {
+  data: Record<string, unknown>
+  fields: Field[]
+}) => ValidationIssue | ValidationIssue[] | null | undefined
+
 export interface CreateKernelOptions {
   adapter: DocumentAdapter
+  /** Extra / cross-field checks; return a message to fail. */
+  validators?: FieldValidator[]
 }

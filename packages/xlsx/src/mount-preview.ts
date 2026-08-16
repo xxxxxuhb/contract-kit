@@ -1,5 +1,6 @@
 import {
   parseTableColumnRef,
+  rowsForExpand,
   type FormSchemaField,
   type PreviewInline,
   type ValidationResult,
@@ -41,7 +42,7 @@ export type XlsxPreviewHandle = {
 }
 
 function tableRows(field: FormSchemaField): Record<string, unknown>[] {
-  return Array.isArray(field.value) ? (field.value as Record<string, unknown>[]) : []
+  return rowsForExpand(field.value)
 }
 
 function rewriteInlines(inlines: PreviewInline[], tableName: string, index: number): PreviewInline[] {

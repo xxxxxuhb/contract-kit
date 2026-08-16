@@ -9,7 +9,7 @@ import {
   splitByMarkers,
   stringifyFieldValue,
 } from '../src/markers'
-import { setDataPath } from '../src/path'
+import { insertTableRow, removeTableRow, rowsForExpand, setDataPath } from '../src/path'
 
 test('parseMarkers reads name, type, and skips duplicates', () => {
   const markers = parseMarkers('甲方{{partyA}} 付款{{payMethod:select}} 再写{{partyA}} {{未知:nope}}')
@@ -23,12 +23,20 @@ test('parseMarkers reads name, type, and skips duplicates', () => {
   )
 })
 
-test('replaceMarkers fills values and blanks missing ones', () => {
+test('replaceMarkers fills values and keeps missing markers', () => {
   assert.equal(
     replaceMarkers('甲方：{{partyA}}，付款：{{payMethod:select}}', {
       partyA: 'xx公司',
     }),
-    '甲方：xx公司，付款：',
+    '甲方：xx公司，付款：{{payMethod:select}}',
+  )
+  assert.equal(
+    replaceMarkers('甲方：{{partyA}}', { partyA: '' }),
+    '甲方：',
+  )
+  assert.equal(
+    replaceMarkers('甲方：{{partyA}}，付款：{{payMethod}}', { partyA: '甲' }, { missing: 'blank' }),
+    '甲方：甲，付款：',
   )
 })
 
@@ -38,6 +46,7 @@ test('stringifyFieldValue covers primitives and arrays', () => {
   assert.equal(stringifyFieldValue(12), '12')
   assert.equal(stringifyFieldValue(true), 'true')
   assert.equal(stringifyFieldValue(['a', 1]), 'a, 1')
+  assert.equal(stringifyFieldValue('data:image/png;base64,AAAA'), '')
   assert.equal(stringifyFieldValue({ x: 1 }), '')
   assert.equal(stringifyFieldValue(new Date('2026-08-15T00:00:00.000Z')), '2026-08-15')
 })
@@ -106,4 +115,15 @@ test('setDataPath writes nested table cells', () => {
   assert.deepEqual(next, { items: [{ qty: 3 }, { name: '橙' }] })
   const whole = setDataPath(next, 'items', [{ name: 'a' }])
   assert.deepEqual(whole, { items: [{ name: 'a' }] })
+})
+
+test('insertTableRow / removeTableRow / rowsForExpand', () => {
+  const withRow = insertTableRow({ partyA: '甲' }, 'items', undefined, { name: '苹果' })
+  assert.deepEqual(withRow, { partyA: '甲', items: [{ name: '苹果' }] })
+  const inserted = insertTableRow(withRow, 'items', 0, { name: '橙' })
+  assert.deepEqual(inserted.items, [{ name: '橙' }, { name: '苹果' }])
+  assert.deepEqual(removeTableRow(inserted, 'items', 0).items, [{ name: '苹果' }])
+  assert.deepEqual(rowsForExpand(undefined), [{}])
+  assert.deepEqual(rowsForExpand([]), [{}])
+  assert.deepEqual(rowsForExpand([{ name: 'a' }]), [{ name: 'a' }])
 })

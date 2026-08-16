@@ -32,6 +32,16 @@
       "types": "./dist/pdf.d.ts",
       "require": "./dist/pdf.js",
       "default": "./dist/pdf.js"
+    },
+    "./vue": {
+      "types": "./dist/vue.d.ts",
+      "require": "./dist/vue.js",
+      "default": "./dist/vue.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "require": "./dist/react.js",
+      "default": "./dist/react.js"
     }
   },
   "files": [
@@ -45,7 +55,9 @@
     "@contract-kit/docx": "0.1.0",
     "@contract-kit/kernel": "0.1.0",
     "@contract-kit/pdf": "0.1.0",
+    "@contract-kit/react": "0.1.0",
     "@contract-kit/ui": "0.1.0",
+    "@contract-kit/vue": "0.1.0",
     "@contract-kit/xlsx": "0.1.0"
   },
   "devDependencies": {

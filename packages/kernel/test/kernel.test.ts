@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { createKernel } from '../src/kernel'
+import { hydrateFromBundle, snapshotKernel, toPersistBundle } from '../src/persist'
 import type { DiscoveredField, DocumentAdapter, Field, Source } from '../src/types'
 
 class MemoryAdapter implements DocumentAdapter {
@@ -172,6 +173,7 @@ test('insertField rejects duplicate names; hydrate restores definition and data'
 test('can() blocks writes before load', () => {
   const kernel = createKernel({ adapter: new MemoryAdapter() })
   assert.equal(kernel.can({ type: 'setValue', path: 'x', value: 1 }), false)
+  assert.equal(kernel.can({ type: 'insertRow', table: 'items' }), false)
   assert.equal(kernel.can({ type: 'load', source: source() }), true)
   assert.equal(kernel.can({ type: 'load', source: { kind: 'xlsx', buffer: new Uint8Array() } }), false)
 })
@@ -219,6 +221,27 @@ test('updateField / removeField / resetData / setData mutate kernel state', asyn
   assert.equal(kernel.validate().ok, false)
 })
 
+test('persist bundle and snapshot follow hydrate convention', async () => {
+  const adapter = new MemoryAdapter()
+  adapter.discovered = [{ name: 'partyA', type: 'text', anchor: { kind: 'marker', name: 'partyA' } }]
+  const kernel = createKernel({ adapter })
+  await kernel.dispatch({ type: 'load', source: source() })
+  await kernel.dispatch({ type: 'setValue', path: 'partyA', value: '甲' })
+
+  const bundle = toPersistBundle(kernel)
+  assert.ok(bundle)
+  assert.equal(bundle!.data.partyA, '甲')
+  assert.equal(bundle!.definition.fields[0].name, 'partyA')
+
+  const snap = snapshotKernel(kernel)
+  assert.equal(snap.data.partyA, '甲')
+  assert.equal(snap.schema.fields[0].name, 'partyA')
+
+  const restored = createKernel({ adapter: new MemoryAdapter() })
+  await restored.dispatch(hydrateFromBundle(bundle!))
+  assert.equal(restored.getData().partyA, '甲')
+})
+
 test('subscribe can unsubscribe', async () => {
   const adapter = new MemoryAdapter()
   adapter.discovered = [{ name: 'partyA', type: 'text', anchor: { kind: 'marker', name: 'partyA' } }]
@@ -247,4 +270,23 @@ test('setValue supports nested table cell paths', async () => {
   await kernel.dispatch({ type: 'setValue', path: 'items.0.name', value: '苹果' })
   assert.deepEqual(kernel.getData(), { items: [{ name: '苹果' }] })
   assert.equal(kernel.validate().ok, true)
+})
+
+test('insertRow / removeRow mutate table arrays', async () => {
+  const adapter = new MemoryAdapter()
+  adapter.discovered = [
+    {
+      name: 'items',
+      type: 'table',
+      columns: [{ name: 'name', type: 'text' }],
+      anchor: { kind: 'marker', name: 'items' },
+    },
+  ]
+  const kernel = createKernel({ adapter })
+  await kernel.dispatch({ type: 'load', source: source() })
+  await kernel.dispatch({ type: 'insertRow', table: 'items', row: { name: '苹果' } })
+  await kernel.dispatch({ type: 'insertRow', table: 'items', index: 0, row: { name: '橙' } })
+  assert.deepEqual(kernel.getData().items, [{ name: '橙' }, { name: '苹果' }])
+  await kernel.dispatch({ type: 'removeRow', table: 'items', index: 0 })
+  assert.deepEqual(kernel.getData().items, [{ name: '苹果' }])
 })

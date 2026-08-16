@@ -1,6 +1,6 @@
 import { hashBytes } from './hash'
 import { createId } from './id'
-import { cloneData, setDataPath } from './path'
+import { cloneData, insertTableRow, removeTableRow, setDataPath } from './path'
 import { buildFormSchema, buildView, emptyValidation, validateState } from './schema'
 import type {
   Command,
@@ -18,6 +18,7 @@ import type {
 
 export function createKernel(options: CreateKernelOptions): Kernel {
   const adapter: DocumentAdapter = options.adapter
+  const validators = options.validators ?? []
   let viewport: ViewportPort | null = null
   let preview: PreviewModel | null = null
   const listeners = new Set<(event: KernelEvent) => void>()
@@ -55,7 +56,7 @@ export function createKernel(options: CreateKernelOptions): Kernel {
   }
 
   function refreshValidation() {
-    state.validation = validateState(state)
+    state.validation = validateState(state, validators)
     emit({ type: 'validated', result: state.validation })
   }
 
@@ -70,6 +71,8 @@ export function createKernel(options: CreateKernelOptions): Kernel {
       case 'setValue':
       case 'setData':
       case 'resetData':
+      case 'insertRow':
+      case 'removeRow':
       case 'export':
         return Boolean(state.definition && state.source)
       default:
@@ -194,6 +197,22 @@ export function createKernel(options: CreateKernelOptions): Kernel {
         return { type: 'ok' }
       }
 
+      case 'insertRow': {
+        requireDefinition()
+        state.data = insertTableRow(state.data, command.table, command.index, command.row)
+        refreshValidation()
+        emit({ type: 'data-changed' })
+        return { type: 'ok' }
+      }
+
+      case 'removeRow': {
+        requireDefinition()
+        state.data = removeTableRow(state.data, command.table, command.index)
+        refreshValidation()
+        emit({ type: 'data-changed' })
+        return { type: 'ok' }
+      }
+
       case 'export': {
         requireDefinition()
         await adapter.bind(state.data)
@@ -213,7 +232,7 @@ export function createKernel(options: CreateKernelOptions): Kernel {
     getView: () => buildView(state),
     getPreview: () => preview,
     getSource: () => state.source,
-    validate: () => validateState(state),
+    validate: () => validateState(state, validators),
     can,
     dispatch,
     subscribe(listener) {

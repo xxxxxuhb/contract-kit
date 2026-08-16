@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, watch } from 'vue'
-import { mountXlsxPreview, type XlsxPreviewHandle } from '@contract-kit/xlsx'
-import type { FormSchemaField, ValidationResult, XlsxPreviewSheet } from '@contract-kit/kernel'
+import {
+  mountXlsxPreview,
+  type FormSchemaField,
+  type ValidationResult,
+  type XlsxPreviewHandle,
+  type XlsxPreviewSheet,
+} from 'contract-kit'
 import type { FieldMounter } from '~/utils/field-types'
 
 const props = defineProps<{

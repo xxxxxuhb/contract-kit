@@ -1,9 +1,11 @@
 import {
   aggregateMarkerFields,
+  parseDataUrl,
   parseMarkers,
   parseTableColumnRef,
   replaceMarkers,
   replaceRowMarkers,
+  rowsForExpand,
   splitByMarkers,
   tableNamesInText,
   textHasTableMarkers,
@@ -98,12 +100,8 @@ function expandSheetTables(sheet: ExcelJS.Worksheet, data: Record<string, unknow
 
   hits.sort((a, b) => b.rowNumber - a.rowNumber)
   for (const hit of hits) {
-    const rows = Array.isArray(data[hit.tableName]) ? (data[hit.tableName] as unknown[]) : []
+    const rows = rowsForExpand(data[hit.tableName])
     const templateRow = hit.rowNumber
-    if (rows.length === 0) {
-      sheet.spliceRows(templateRow, 1)
-      continue
-    }
     if (rows.length > 1) {
       sheet.duplicateRow(templateRow, rows.length - 1, true)
     }
@@ -231,16 +229,67 @@ export class XlsxAdapter implements DocumentAdapter {
     }
   }
 
+  private markerText(field: Field) {
+    return field.type === 'text' ? `{{${field.name}}}` : `{{${field.name}:${field.type}}}`
+  }
+
+  private findCellByMarker(name: string): ExcelJS.Cell | null {
+    if (!this.workbook) return null
+    const re = new RegExp(`\\{\\{\\s*${name}(?:\\s*:\\s*[A-Za-z_][A-Za-z0-9_]*)?\\s*\\}\\}`)
+    for (const sheet of this.workbook.worksheets) {
+      let found: ExcelJS.Cell | null = null
+      sheet.eachRow((row) => {
+        row.eachCell((cell) => {
+          if (found) return
+          if (re.test(cellText(cell.value))) found = cell
+        })
+      })
+      if (found) return found
+    }
+    return null
+  }
+
+  private async persistTemplate(): Promise<void> {
+    if (!this.workbook) return
+    const buffer = await this.workbook.xlsx.writeBuffer()
+    this.original = new Uint8Array(buffer)
+  }
+
   async insertAnchor(field: Field): Promise<void> {
     this.fields.set(field.id, field)
+    if (!this.workbook) return
+    if (this.findCellByMarker(field.name)) return
+    const sheet = this.workbook.worksheets[0]
+    if (!sheet) return
+    const row = sheet.rowCount + 1
+    sheet.getCell(row, 1).value = this.markerText(field)
+    await this.persistTemplate()
   }
 
   async updateAnchor(field: Field): Promise<void> {
+    const previous = this.fields.get(field.id)
     this.fields.set(field.id, field)
+    const cell = this.findCellByMarker(previous?.name ?? field.name)
+    if (cell) {
+      cell.value = this.markerText(field)
+      await this.persistTemplate()
+      return
+    }
+    await this.insertAnchor(field)
   }
 
   async removeAnchor(fieldId: string): Promise<void> {
+    const field = this.fields.get(fieldId)
     this.fields.delete(fieldId)
+    if (!field) return
+    const cell = this.findCellByMarker(field.name)
+    if (!cell) return
+    const text = cellText(cell.value)
+    cell.value = text.replace(
+      new RegExp(`\\{\\{\\s*${field.name}(?:\\s*:\\s*[A-Za-z_][A-Za-z0-9_]*)?\\s*\\}\\}`, 'g'),
+      '',
+    )
+    await this.persistTemplate()
   }
 
   async bind(data: Record<string, unknown>): Promise<void> {
@@ -253,7 +302,23 @@ export class XlsxAdapter implements DocumentAdapter {
         row.eachCell((cell) => {
           const text = cellText(cell.value)
           if (!text.includes('{{')) return
-          const next = replaceMarkers(text, data)
+          const imageMarker = parseMarkers(text).find((marker) => parseDataUrl(data[marker.name]))
+          if (imageMarker && parseMarkers(text).length === 1 && text.trim() === imageMarker.raw) {
+            const parsed = parseDataUrl(data[imageMarker.name])
+            if (parsed) {
+              const imageId = workbook.addImage({
+                buffer: parsed.bytes as unknown as ExcelJS.Buffer,
+                extension: parsed.ext === 'jpg' ? 'jpeg' : (parsed.ext as 'png' | 'jpeg' | 'gif'),
+              })
+              sheet.addImage(imageId, {
+                tl: { col: Number(cell.col) - 1, row: Number(cell.row) - 1 },
+                ext: { width: 120, height: 120 },
+              })
+              cell.value = ''
+              return
+            }
+          }
+          const next = replaceMarkers(text, data, { missing: 'blank' })
           if (next !== text) cell.value = next
         })
       })

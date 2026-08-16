@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { FormSchemaField, ValidationResult } from '@contract-kit/kernel'
+import type { FormSchemaField, ValidationResult } from 'contract-kit'
 import { resolveFieldSlot } from '~/utils/resolve-field'
 
 const props = defineProps<{

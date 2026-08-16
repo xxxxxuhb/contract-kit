@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, type FormInstance } from 'element-plus'
 import { buildElFormRules } from '~/utils/form-rules'
-import { downloadBuffer } from '~/utils/download'
+import { downloadBuffer, downloadFilledPdf, officeMime } from '~/utils/export-file'
 
 const {
   list,
@@ -22,7 +22,7 @@ const {
 
 const formRef = ref<FormInstance>()
 const formModel = reactive<Record<string, unknown>>({})
-const busy = ref(false)
+const busy = ref<'docx' | 'xlsx' | 'pdf' | null>(null)
 
 const rules = computed(() => {
   if (!payload.value) return {}
@@ -75,21 +75,28 @@ async function onValidate() {
   }
 }
 
-async function onExport() {
-  busy.value = true
+async function onExportOffice(format: 'docx' | 'xlsx') {
+  if (payload.value?.kind !== format) return
+  busy.value = format
   try {
     const file = await exportFile()
-    downloadBuffer(
-      `${payload.value?.title ?? 'contract'}.${file.format}`,
-      file.buffer,
-      file.format === 'docx'
-        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    )
+    downloadBuffer(`${payload.value?.title ?? 'contract'}.${file.format}`, file.buffer, officeMime(file.format))
   } catch (err) {
     ElMessage.error(err instanceof Error ? err.message : '导出失败')
   } finally {
-    busy.value = false
+    busy.value = null
+  }
+}
+
+async function onExportPdf() {
+  busy.value = 'pdf'
+  try {
+    const file = await exportFile()
+    await downloadFilledPdf(payload.value?.title ?? 'contract', file.format, file.buffer)
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '导出 PDF 失败')
+  } finally {
+    busy.value = null
   }
 }
 
@@ -111,9 +118,13 @@ function onClose() {
       </div>
       <div v-if="payload" class="header-actions">
         <el-button type="primary" @click="onValidate">校验</el-button>
-        <el-button :loading="busy" @click="onExport">
-          导出 {{ payload.kind === 'docx' ? 'Word' : 'Excel' }}
+        <el-button :loading="busy === 'docx'" :disabled="Boolean(busy) || payload.kind !== 'docx'" @click="onExportOffice('docx')">
+          导出 Word
         </el-button>
+        <el-button :loading="busy === 'xlsx'" :disabled="Boolean(busy) || payload.kind !== 'xlsx'" @click="onExportOffice('xlsx')">
+          导出 Excel
+        </el-button>
+        <el-button :loading="busy === 'pdf'" :disabled="Boolean(busy)" @click="onExportPdf">导出 PDF</el-button>
         <el-button @click="onClose">关闭</el-button>
       </div>
     </header>

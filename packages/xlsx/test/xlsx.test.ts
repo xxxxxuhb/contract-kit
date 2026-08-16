@@ -67,6 +67,35 @@ test('export binds cell values and does not mutate the original buffer', async (
   assert.equal(await readCell(result.buffer, 'B2'), '电汇')
 })
 
+test('insertField appends a marker cell when missing', async () => {
+  const buffer = await makeXlsx()
+  const kernel = createKernel({ adapter: new XlsxAdapter() })
+  await kernel.dispatch({ type: 'load', source: { kind: 'xlsx', buffer } })
+  await kernel.dispatch({
+    type: 'insertField',
+    field: {
+      name: 'note',
+      type: 'textarea',
+      label: '备注',
+      anchor: { kind: 'cell', sheet: '合同', address: 'A3' },
+    },
+  })
+  await kernel.dispatch({ type: 'setValue', path: 'note', value: '补充条款' })
+  const result = await kernel.dispatch({ type: 'export' })
+  assert.equal(result.type, 'exported')
+  if (result.type !== 'exported') return
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.load(result.buffer as unknown as ExcelJS.Buffer)
+  const sheet = workbook.getWorksheet('合同')!
+  let found = false
+  sheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      if (String(cell.value).includes('补充条款')) found = true
+    })
+  })
+  assert.equal(found, true)
+})
+
 test('XlsxAdapter rejects a non-xlsx source', async () => {
   const adapter = new XlsxAdapter()
   await assert.rejects(
@@ -112,6 +141,25 @@ test('getPreview includes solid fill and font color', async () => {
   assert.equal(style?.fontWeight, 'bold')
 })
 
+test('export embeds image data URL into the worksheet', async () => {
+  const png =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+  const workbook = new ExcelJS.Workbook()
+  const sheet = workbook.addWorksheet('合同')
+  sheet.getCell('A1').value = '{{stamp:image}}'
+  const buffer = new Uint8Array(await workbook.xlsx.writeBuffer())
+  const kernel = createKernel({ adapter: new XlsxAdapter() })
+  await kernel.dispatch({ type: 'load', source: { kind: 'xlsx', buffer } })
+  await kernel.dispatch({ type: 'setValue', path: 'stamp', value: png })
+  const result = await kernel.dispatch({ type: 'export' })
+  assert.equal(result.type, 'exported')
+  if (result.type !== 'exported') return
+  const out = new ExcelJS.Workbook()
+  await out.xlsx.load(result.buffer as unknown as ExcelJS.Buffer)
+  const media = (out as unknown as { model?: { media?: unknown[] } }).model?.media ?? []
+  assert.ok(media.length > 0)
+})
+
 test('xlsx discovers table fields and expands rows on export', async () => {
   const buffer = await makeItemsXlsx()
   const kernel = createKernel({ adapter: new XlsxAdapter() })
@@ -139,4 +187,20 @@ test('xlsx discovers table fields and expands rows on export', async () => {
   assert.equal(String(sheet.getCell('A3').value), '2')
   assert.equal(String(sheet.getCell('B3').value), '橙')
   assert.equal(String(sheet.getCell('B4').value), 'ok')
+})
+
+test('xlsx keeps a blank placeholder row when the table is empty', async () => {
+  const buffer = await makeItemsXlsx()
+  const kernel = createKernel({ adapter: new XlsxAdapter() })
+  await kernel.dispatch({ type: 'load', source: { kind: 'xlsx', buffer } })
+  await kernel.dispatch({ type: 'setData', data: { note: 'empty-table' } })
+  const result = await kernel.dispatch({ type: 'export' })
+  assert.equal(result.type, 'exported')
+  if (result.type !== 'exported') return
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.load(result.buffer as unknown as ExcelJS.Buffer)
+  const sheet = workbook.getWorksheet('合同')!
+  assert.equal(String(sheet.getCell('A2').value), '1')
+  assert.equal(String(sheet.getCell('B2').value ?? ''), '')
+  assert.equal(String(sheet.getCell('B3').value), 'empty-table')
 })

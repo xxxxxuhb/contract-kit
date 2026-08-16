@@ -51,6 +51,21 @@ test('expandXlsxSheets clones template row and rewrites field paths', () => {
   assert.deepEqual(expanded[0].cells[1][1].inlines, [{ type: 'field', name: 'items.1.name' }])
 })
 
+test('expandXlsxSheets keeps one placeholder row when the table is empty', () => {
+  const sheets: XlsxPreviewSheet[] = [
+    {
+      name: '合同',
+      colWidths: [10],
+      cells: [[{ inlines: [{ type: 'field', name: 'items.name' }] }]],
+    },
+  ]
+  const expanded = expandXlsxSheets(sheets, [
+    { id: '1', name: 'items', type: 'table', columns: [{ name: 'name', type: 'text' }], value: [] },
+  ])
+  assert.equal(expanded[0].cells.length, 1)
+  assert.deepEqual(expanded[0].cells[0][0].inlines, [{ type: 'field', name: 'items.0.name' }])
+})
+
 test('mountXlsxPreview mounts field slots and applies cell background', () => {
   withDom(() => {
     const host = document.createElement('div')

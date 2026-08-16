@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { JSDOM } from 'jsdom'
-import { createField, mountField } from '../src/index'
+import { createField, mountField, nativeFieldMounter } from '../src/index'
 
 function withDom<T>(fn: () => T): T {
   const dom = new JSDOM('<!doctype html><html><body></body></html>')
@@ -97,6 +97,21 @@ describe('createField', () => {
       assert.ok(input)
       assert.equal(input.type, 'number')
       assert.equal(input.value, '2')
+    })
+  })
+
+  it('nativeFieldMounter mounts into a preview slot', () => {
+    withDom(() => {
+      const host = document.createElement('span')
+      const handle = nativeFieldMounter(host, {
+        name: 'partyA',
+        field: { name: 'partyA', type: 'text', value: '甲' },
+        value: '甲',
+        onChange: () => undefined,
+      })
+      assert.equal(host.children.length, 1)
+      assert.equal(handle.el.querySelector('input')?.value, '甲')
+      handle.destroy()
     })
   })
 

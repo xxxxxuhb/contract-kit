@@ -103,7 +103,10 @@ export function aggregateMarkerFields(markers: ParsedMarker[]): Array<{
 
 export function stringifyFieldValue(value: unknown): string {
   if (value === undefined || value === null) return ''
-  if (typeof value === 'string') return value
+  if (typeof value === 'string') {
+    if (/^data:image\//i.test(value)) return ''
+    return value
+  }
   if (typeof value === 'number' || typeof value === 'boolean') return String(value)
   if (value instanceof Date) return value.toISOString().slice(0, 10)
   if (Array.isArray(value)) return value.map(stringifyFieldValue).join(', ')
@@ -128,10 +131,23 @@ export function splitByMarkers(text: string): MarkerSegment[] {
   return out
 }
 
-/** Flat replace: `{{partyA}}` from data[partyA]. Dotted keys use data['items.name'] if present. */
-export function replaceMarkers(text: string, data: Record<string, unknown>): string {
+export type ReplaceMarkersOptions = {
+  /** `keep` (default) leaves `{{name}}`; `blank` clears it (export bind). */
+  missing?: 'keep' | 'blank'
+}
+
+/** Flat replace: `{{partyA}}` from data[partyA]. Missing keys keep the marker by default. */
+export function replaceMarkers(
+  text: string,
+  data: Record<string, unknown>,
+  options?: ReplaceMarkersOptions,
+): string {
+  const missing = options?.missing ?? 'keep'
   const re = new RegExp(MARKER_RE.source, 'g')
-  return text.replace(re, (_raw, name: string) => stringifyFieldValue(data[name]))
+  return text.replace(re, (raw, name: string) => {
+    if (!(name in data)) return missing === 'blank' ? '' : raw
+    return stringifyFieldValue(data[name])
+  })
 }
 
 /**

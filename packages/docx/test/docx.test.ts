@@ -74,6 +74,50 @@ test('hydrate replays definition + data onto a fresh kernel', async () => {
   }
 })
 
+test('export embeds image data URL as a drawing', async () => {
+  const png =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+  const buffer = await makeDocx(['附件{{stamp:image}}'])
+  const kernel = createKernel({ adapter: new DocxAdapter() })
+  await kernel.dispatch({ type: 'load', source: { kind: 'docx', buffer } })
+  await kernel.dispatch({ type: 'setValue', path: 'stamp', value: png })
+  const result = await kernel.dispatch({ type: 'export' })
+  assert.equal(result.type, 'exported')
+  if (result.type !== 'exported') return
+  const zip = await (await import('jszip')).default.loadAsync(result.buffer)
+  assert.ok(zip.file('word/media/ck-stamp.png'))
+  const xml = await zip.file('word/document.xml')!.async('string')
+  assert.match(xml, /<w:drawing>/)
+  assert.doesNotMatch(xml, /\{\{stamp/)
+})
+
+test('insertField / removeField write markers into the document', async () => {
+  const buffer = await makeDocx(['甲方：{{partyA}}'])
+  const kernel = createKernel({ adapter: new DocxAdapter() })
+  await kernel.dispatch({ type: 'load', source: { kind: 'docx', buffer } })
+  await kernel.dispatch({
+    type: 'insertField',
+    field: { name: 'partyB', type: 'text', label: '乙方', anchor: { kind: 'marker', name: 'partyB' } },
+  })
+  await kernel.dispatch({ type: 'setValue', path: 'partyB', value: '乙公司' })
+  const afterInsert = await kernel.dispatch({ type: 'export' })
+  assert.equal(afterInsert.type, 'exported')
+  if (afterInsert.type !== 'exported') return
+  const xml = await readDocxDocumentXml(afterInsert.buffer)
+  assert.match(xml, /乙公司/)
+  assert.doesNotMatch(xml, /\{\{partyB\}\}/)
+  assert.doesNotMatch(xml, /\{\{partyA\}\}/)
+
+  const partyB = kernel.getDefinition()!.fields.find((f) => f.name === 'partyB')!
+  await kernel.dispatch({ type: 'removeField', id: partyB.id })
+  const afterRemove = await kernel.dispatch({ type: 'export' })
+  assert.equal(afterRemove.type, 'exported')
+  if (afterRemove.type !== 'exported') return
+  const removed = await readDocxDocumentXml(afterRemove.buffer)
+  assert.doesNotMatch(removed, /乙公司/)
+  assert.doesNotMatch(removed, /\{\{partyB\}\}/)
+})
+
 test('DocxAdapter rejects a non-docx source', async () => {
   const adapter = new DocxAdapter()
   await assert.rejects(

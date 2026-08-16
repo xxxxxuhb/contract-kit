@@ -104,6 +104,63 @@ test('validateState checks table rows and column required', () => {
   assert.equal(ok.ok, true)
 })
 
+test('validateState applies number/date/pattern rules and custom validators', () => {
+  const withRules = state({
+    definition: {
+      version: 1,
+      source: { kind: 'docx', hash: 'abc' },
+      fields: [
+        {
+          id: '1',
+          name: 'qty',
+          type: 'number',
+          label: '数量',
+          required: true,
+          rules: { min: 1, max: 10 },
+          anchor: { kind: 'marker', name: 'qty' },
+        },
+        {
+          id: '2',
+          name: 'signDate',
+          type: 'date',
+          label: '签订日',
+          anchor: { kind: 'marker', name: 'signDate' },
+        },
+        {
+          id: '3',
+          name: 'contractNo',
+          type: 'text',
+          label: '编号',
+          rules: { pattern: '^HT-\\d+$' },
+          anchor: { kind: 'marker', name: 'contractNo' },
+        },
+      ],
+    },
+    data: { qty: 0, signDate: '2026/08/16', contractNo: 'bad' },
+  })
+  const result = validateState(withRules)
+  assert.equal(result.ok, false)
+  assert.ok(result.issues.some((issue) => issue.path === 'qty'))
+  assert.ok(result.issues.some((issue) => issue.path === 'signDate'))
+  assert.ok(result.issues.some((issue) => issue.path === 'contractNo'))
+
+  const ok = validateState({
+    ...withRules,
+    data: { qty: 3, signDate: '2026-08-16', contractNo: 'HT-1' },
+  })
+  assert.equal(ok.ok, true)
+
+  const cross = validateState(
+    { ...withRules, data: { qty: 3, signDate: '2026-08-16', contractNo: 'HT-1' } },
+    [
+      ({ data }) =>
+        Number(data.qty) > 2 ? { path: 'qty', message: '跨字段：数量过大' } : null,
+    ],
+  )
+  assert.equal(cross.ok, false)
+  assert.equal(cross.issues[0].message, '跨字段：数量过大')
+})
+
 test('select without options accepts any value; empty definition is valid', () => {
   const noOptions = state()
   noOptions.definition!.fields[1].options = undefined

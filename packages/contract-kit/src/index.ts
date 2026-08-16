@@ -1,1 +1,5 @@
 export * from '@contract-kit/kernel'
+export * from '@contract-kit/docx'
+export * from '@contract-kit/xlsx'
+export * from '@contract-kit/ui'
+export * from '@contract-kit/pdf'
