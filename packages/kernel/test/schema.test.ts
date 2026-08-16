@@ -65,6 +65,45 @@ test('validateState checks required and select options', () => {
   assert.equal(ok.ok, true)
 })
 
+test('validateState checks table rows and column required', () => {
+  const withTable = state({
+    definition: {
+      version: 1,
+      source: { kind: 'docx', hash: 'abc' },
+      fields: [
+        {
+          id: 't1',
+          name: 'items',
+          type: 'table',
+          label: '明细',
+          required: true,
+          columns: [
+            { name: 'name', type: 'text', label: '货物', required: true },
+            { name: 'qty', type: 'number', label: '数量' },
+          ],
+          anchor: { kind: 'marker', name: 'items' },
+        },
+      ],
+    },
+    data: {},
+  })
+  assert.equal(validateState(withTable).ok, false)
+  assert.equal(validateState(withTable).issues[0].path, 'items')
+
+  const missingCol = validateState({
+    ...withTable,
+    data: { items: [{ name: '', qty: 1 }] },
+  })
+  assert.equal(missingCol.ok, false)
+  assert.equal(missingCol.issues[0].path, 'items.0.name')
+
+  const ok = validateState({
+    ...withTable,
+    data: { items: [{ name: '苹果', qty: 1 }] },
+  })
+  assert.equal(ok.ok, true)
+})
+
 test('select without options accepts any value; empty definition is valid', () => {
   const noOptions = state()
   noOptions.definition!.fields[1].options = undefined

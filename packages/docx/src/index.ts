@@ -1,4 +1,5 @@
 import {
+  aggregateMarkerFields,
   parseMarkers,
   type DiscoveredField,
   type DocumentAdapter,
@@ -8,7 +9,7 @@ import {
 } from '@contract-kit/kernel'
 import JSZip from 'jszip'
 import { buildDocxPreview } from './preview'
-import { applyMarkers, extractText, isWordXmlPath } from './xml'
+import { bindDocumentXml, extractText, isWordXmlPath } from './xml'
 
 export class DocxAdapter implements DocumentAdapter {
   readonly kind = 'docx' as const
@@ -42,11 +43,12 @@ export class DocxAdapter implements DocumentAdapter {
       if (!isWordXmlPath(path)) continue
       chunks.push(extractText(new TextDecoder().decode(bytes)))
     }
-    return parseMarkers(chunks.join('\n')).map((marker) => ({
-      name: marker.name,
-      type: marker.type,
-      label: marker.name,
-      anchor: { kind: 'marker', name: marker.name },
+    return aggregateMarkerFields(parseMarkers(chunks.join('\n'))).map((field) => ({
+      name: field.name,
+      type: field.type,
+      label: field.name,
+      columns: field.columns,
+      anchor: { kind: 'marker' as const, name: field.name },
     }))
   }
 
@@ -76,7 +78,7 @@ export class DocxAdapter implements DocumentAdapter {
     for (const [path, bytes] of this.files) {
       if (!isWordXmlPath(path)) continue
       const xml = new TextDecoder().decode(bytes)
-      const applied = applyMarkers(xml, data)
+      const applied = bindDocumentXml(xml, data)
       if (applied !== xml) next.set(path, new TextEncoder().encode(applied))
     }
     this.bound = next

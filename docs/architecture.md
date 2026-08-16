@@ -283,4 +283,5 @@ Excel：`XlsxDocument` 收 `field-component`。
 ## 待办
 
 - [ ] **image 字段**：`FieldType` / `{{name:image}}` 已预留，但尚无 UI 与导出嵌图；需补上传/预览，以及 docx/xlsx `bind` 真正插入图片，并更新 api / README 约定 data 形态（URL / base64 等）。
-- [ ] **循环明细表**：表头固定、正文按数组扩行（行模板）；当前示例只是固定一行里的多个标量标记（`{{goods}}` 等）。需定义 data 约定（如 `items[]`）、docx/xlsx bind 增删行，以及预览/填写 UI；并更新文档与示例。
+- [x] **循环明细表**：`{{items.col}}` 行模板 + `data.items[]`；docx/xlsx bind 扩行；预览按业务 data 行数渲染，行内字段可填（行数由业务 `setValue('items', rows)` 控制）。
+- [x] **Examples 部署到 GitHub**：`npm run build:examples` → `dist-examples/`；Actions 推 `main`/`v2` 部署 GitHub Pages（`/native/`、`/custom/`）。

@@ -9,6 +9,10 @@ export function emptyValidation(): ValidationResult {
   return { ok: true, issues: [] }
 }
 
+function isEmptyValue(value: unknown): boolean {
+  return value === undefined || value === null || value === ''
+}
+
 export function buildFormSchema(state: KernelState): FormSchema {
   const fields = state.definition?.fields ?? []
   return {
@@ -19,6 +23,7 @@ export function buildFormSchema(state: KernelState): FormSchema {
       label: field.label ?? field.name,
       required: Boolean(field.required),
       options: field.options,
+      columns: field.columns,
       value: state.data[field.name],
     })),
   }
@@ -39,18 +44,42 @@ export function validateState(state: KernelState): ValidationResult {
 
   for (const field of fields) {
     const value = state.data[field.name]
-    if (field.required && (value === undefined || value === null || value === '')) {
-      issues.push({ path: field.name, message: `${field.label ?? field.name} 必填` })
+    const label = field.label ?? field.name
+
+    if (field.type === 'table') {
+      const rows = Array.isArray(value) ? value : []
+      if (field.required && rows.length === 0) {
+        issues.push({ path: field.name, message: `${label} 必填` })
+      }
+      const columns = field.columns ?? []
+      rows.forEach((row, rowIndex) => {
+        const record =
+          row && typeof row === 'object' && !Array.isArray(row)
+            ? (row as Record<string, unknown>)
+            : {}
+        for (const col of columns) {
+          if (!col.required) continue
+          if (isEmptyValue(record[col.name])) {
+            issues.push({
+              path: `${field.name}.${rowIndex}.${col.name}`,
+              message: `${col.label ?? col.name} 必填`,
+            })
+          }
+        }
+      })
+      continue
+    }
+
+    if (field.required && isEmptyValue(value)) {
+      issues.push({ path: field.name, message: `${label} 必填` })
     }
     if (
       field.type === 'select' &&
-      value !== undefined &&
-      value !== null &&
-      value !== '' &&
+      !isEmptyValue(value) &&
       field.options &&
       !field.options.some((opt) => opt.value === value)
     ) {
-      issues.push({ path: field.name, message: `${field.label ?? field.name} 不在选项中` })
+      issues.push({ path: field.name, message: `${label} 不在选项中` })
     }
   }
 

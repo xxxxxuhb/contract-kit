@@ -26,6 +26,8 @@
 金额：{{amount:number}}
 付款方式：{{payMethod:select}}
 签订日期：{{signDate:date}}
+明细行：{{items.name}} / {{items.qty:number}}（循环表，data 为 items[]）
+只读展示：{{filledAt:display}}（data 动态，界面不可编辑）
 ```
 
 运行时持久化三样东西：
@@ -126,7 +128,15 @@ npm install
 npm run templates          # 生成采购合同模板 + definition.json
 npm run example:native    # http://localhost:5199  原生字段 UI
 npm run example:custom     # http://localhost:5200  Element Plus 自绘字段
+npm run build:examples     # 构建静态站到 dist-examples/（可预览 Pages 产物）
 ```
+
+在线演示（GitHub Pages，推送 `main` / `v2` 后自动更新）：
+
+- https://xxxxxuhb.github.io/contract-kit/
+- [native-ui](https://xxxxxuhb.github.io/contract-kit/native/) · [custom-ui](https://xxxxxuhb.github.io/contract-kit/custom/)
+
+仓库 **Settings → Pages → Source** 选 **GitHub Actions**（首次部署前需开一次）。
 
 | 目录 | 说明 |
 |------|------|

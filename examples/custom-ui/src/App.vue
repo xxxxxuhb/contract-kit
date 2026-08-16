@@ -7,6 +7,7 @@ import DefinitionPanel from '@shared/DefinitionPanel.vue'
 import DocxLayout from '@shared/DocxLayout.vue'
 import XlsxDocument from '@shared/XlsxDocument.vue'
 import { downloadBuffer, useContract } from '@shared/use-contract'
+import { templateUrl } from '@shared/asset-url'
 import ElementField from './fields/ElementField.vue'
 import { createElementFieldMounter } from './fields/element-mounter'
 
@@ -35,6 +36,11 @@ const markerPartyA = '{{partyA}}'
 const markerHints = '{{partyA}}、{{amount:number}}、{{payMethod:select}}、{{signDate:date}}'
 const exportingPdf = ref(false)
 const pdfMode = ref<PdfExportMode>('html2canvas')
+
+const templateDocx = templateUrl('采购合同.docx')
+const templateXlsx = templateUrl('采购合同.xlsx')
+const templateDef = templateUrl('采购合同.docx.definition.json')
+const templateDefAlt = templateUrl('采购合同.docx.definition.alt.json')
 
 async function onOpenPublished(nextKind: 'docx' | 'xlsx') {
   try {
@@ -164,10 +170,10 @@ async function onExportPdf() {
           。
         </p>
         <div class="start-actions">
-          <a class="start-link" href="/templates/采购合同.docx" download>下载 Word</a>
-          <a class="start-link" href="/templates/采购合同.xlsx" download>下载 Excel</a>
-          <a class="start-link" href="/templates/采购合同.docx.definition.json" download>默认 definition</a>
-          <a class="start-link" href="/templates/采购合同.docx.definition.alt.json" download>alt definition</a>
+          <a class="start-link" :href="templateDocx" download>下载 Word</a>
+          <a class="start-link" :href="templateXlsx" download>下载 Excel</a>
+          <a class="start-link" :href="templateDef" download>默认 definition</a>
+          <a class="start-link" :href="templateDefAlt" download>alt definition</a>
           <el-button type="primary" :loading="loading" @click="onOpenPublished('docx')">打开 Word 合同</el-button>
         </div>
         <p class="start-hint">标记：{{ markerHints }}</p>

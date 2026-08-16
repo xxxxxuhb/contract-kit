@@ -1,6 +1,17 @@
 export { createKernel } from './kernel'
-export { parseMarkers, replaceMarkers, splitByMarkers, stringifyFieldValue } from './markers'
-export type { MarkerSegment, ParsedMarker } from './markers'
+export {
+  aggregateMarkerFields,
+  parseMarkers,
+  parseTableColumnRef,
+  replaceMarkers,
+  replaceRowMarkers,
+  splitByMarkers,
+  stringifyFieldValue,
+  tableNamesInText,
+  textHasTableMarkers,
+} from './markers'
+export type { MarkerSegment, ParsedMarker, TableColumnRef } from './markers'
+export { cloneData, setDataPath } from './path'
 export type {
   Anchor,
   Command,
@@ -11,6 +22,7 @@ export type {
   DocxAnchor,
   DocxPreview,
   Field,
+  FieldColumn,
   FieldOption,
   FieldType,
   FormSchema,

@@ -49,6 +49,18 @@
   resize: vertical;
 }
 
+.ck-field-display {
+  display: inline;
+  font: inherit;
+  line-height: inherit;
+  color: inherit;
+  white-space: pre-wrap;
+}
+
+.ck-field.is-display {
+  margin: 0 1px;
+}
+
 .ck-field.is-error .ck-field-input,
 .ck-field.is-error .ck-field-select {
   border-bottom-color: #f56c6c;

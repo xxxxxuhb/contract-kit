@@ -19,6 +19,11 @@ function setErrorState(wrap: HTMLElement, control: HTMLElement, error?: string) 
 }
 
 function buildControl(type: FieldType, field: Partial<FieldModel> | null | undefined): HTMLElement {
+  if (type === 'display') {
+    const el = document.createElement('span')
+    el.className = 'ck-field-display'
+    return el
+  }
   if (type === 'textarea') {
     const el = document.createElement('textarea')
     el.className = 'ck-field-textarea'
@@ -60,6 +65,7 @@ function fillSelect(el: HTMLSelectElement, field: Partial<FieldModel> | null | u
 }
 
 function readValue(type: FieldType, control: HTMLElement): unknown {
+  if (type === 'display') return control.textContent ?? ''
   if (control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement) {
     return control.value
   }
@@ -75,6 +81,10 @@ function readValue(type: FieldType, control: HTMLElement): unknown {
 }
 
 function writeValue(type: FieldType, control: HTMLElement, value: unknown) {
+  if (type === 'display') {
+    control.textContent = asString(value)
+    return
+  }
   if (control instanceof HTMLSelectElement) {
     control.value = asString(value)
     return
@@ -85,8 +95,8 @@ function writeValue(type: FieldType, control: HTMLElement, value: unknown) {
 }
 
 /**
- * Create a native field control (input / select / textarea / date / number).
- * No framework, no UI library.
+ * Create a native field control (input / select / textarea / date / number / display).
+ * No framework, no UI library. `display` is read-only text bound to data.
  */
 export function createField(options: CreateFieldOptions): FieldHandle {
   let field = options.field ?? null
@@ -97,20 +107,25 @@ export function createField(options: CreateFieldOptions): FieldHandle {
   const wrap = document.createElement('span')
   wrap.className = 'ck-field'
   wrap.dataset.field = options.name
+  if (type === 'display') wrap.classList.add('is-display')
 
   let control = buildControl(type, field)
   control.setAttribute('aria-label', field?.label || options.name)
   wrap.appendChild(control)
 
   const onInput = () => {
+    if (type === 'display') return
     value = readValue(type, control)
     options.onChange(value)
   }
-  control.addEventListener('input', onInput)
-  control.addEventListener('change', onInput)
+  if (type !== 'display') {
+    control.addEventListener('input', onInput)
+    control.addEventListener('change', onInput)
+  }
 
   function paint() {
     type = resolveType(field)
+    wrap.classList.toggle('is-display', type === 'display')
     const next = buildControl(type, field)
     next.setAttribute('aria-label', field?.label || options.name)
     if (type === 'select' && next instanceof HTMLSelectElement) {
@@ -121,8 +136,10 @@ export function createField(options: CreateFieldOptions): FieldHandle {
     setErrorState(wrap, next, error)
     control.removeEventListener('input', onInput)
     control.removeEventListener('change', onInput)
-    next.addEventListener('input', onInput)
-    next.addEventListener('change', onInput)
+    if (type !== 'display') {
+      next.addEventListener('input', onInput)
+      next.addEventListener('change', onInput)
+    }
     control.replaceWith(next)
     control = next
   }
@@ -142,7 +159,6 @@ export function createField(options: CreateFieldOptions): FieldHandle {
       if ('field' in patch) field = patch.field ?? null
       if ('value' in patch) value = patch.value
       if ('error' in patch) error = patch.error
-      // type may change with field — rebuild when needed
       const nextType = resolveType(field)
       if (nextType !== type || (nextType === 'select' && 'field' in patch)) {
         paint()

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { FormSchemaField, ValidationResult } from '@contract-kit/kernel'
+import { resolveFieldSlot } from '@shared/resolve-field'
 
 const props = defineProps<{
   name: string
@@ -12,13 +13,14 @@ const emit = defineEmits<{
   setValue: [name: string, value: unknown]
 }>()
 
-const field = computed(() => props.fields.find((item) => item.name === props.name))
-const error = computed(() => props.validation.issues.find((issue) => issue.path === props.name)?.message)
+const resolved = computed(() => resolveFieldSlot(props.name, props.fields, props.validation))
+const field = computed(() => resolved.value.field)
+const error = computed(() => resolved.value.error)
 const type = computed(() => field.value?.type ?? 'text')
-const textValue = computed(() => (field.value?.value == null ? '' : String(field.value.value)))
+const textValue = computed(() => (resolved.value.value == null ? '' : String(resolved.value.value)))
 const numberValue = computed(() =>
-  typeof field.value?.value === 'number'
-    ? field.value.value
+  typeof resolved.value.value === 'number'
+    ? resolved.value.value
     : textValue.value === ''
       ? undefined
       : Number(textValue.value),
@@ -69,6 +71,8 @@ const numberValue = computed(() =>
       :model-value="numberValue"
       @update:model-value="emit('setValue', name, $event ?? '')"
     />
+
+    <span v-else-if="type === 'display'" class="custom-display">{{ textValue }}</span>
 
     <el-input
       v-else

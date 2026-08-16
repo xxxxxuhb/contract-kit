@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>contract-kit examples</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #1a2332;
+        --muted: #5a6b7d;
+        --line: #d7dee8;
+        --bg: #f4f7fb;
+        --card: #ffffff;
+        --accent: #1b3a5c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(1200px 600px at 10% -10%, #dce8f5 0%, transparent 55%),
+          radial-gradient(900px 500px at 100% 0%, #eef2f7 0%, transparent 50%),
+          var(--bg);
+      }
+      main {
+        width: min(720px, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 4.5rem 0 3rem;
+      }
+      h1 {
+        margin: 0 0 0.5rem;
+        font-size: clamp(1.8rem, 4vw, 2.4rem);
+        letter-spacing: -0.02em;
+      }
+      p {
+        margin: 0 0 1.75rem;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .links {
+        display: grid;
+        gap: 0.85rem;
+      }
+      a {
+        display: block;
+        padding: 1rem 1.15rem;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--card);
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+        transition: border-color 0.15s ease, transform 0.15s ease;
+      }
+      a:hover {
+        border-color: var(--accent);
+        transform: translateY(-1px);
+      }
+      a span {
+        display: block;
+        margin-top: 0.35rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+        font-weight: 400;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>contract-kit</h1>
+      <p>在线演示：同一套 kernel，两种字段 UI。</p>
+      <div class="links">
+        <a href="./native/">
+          native-ui
+          <span>@contract-kit/ui 原生控件</span>
+        </a>
+        <a href="./custom/">
+          custom-ui
+          <span>Element Plus 自绘字段</span>
+        </a>
+      </div>
+    </main>
+  </body>
+</html>

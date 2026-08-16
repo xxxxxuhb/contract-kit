@@ -12,6 +12,7 @@
     "example": "npm run example:native",
     "example:native": "npm run dev -w @contract-kit/example-native-ui",
     "example:custom": "npm run dev -w @contract-kit/example-custom-ui",
+    "build:examples": "node scripts/build-examples-site.mjs",
     "templates": "tsx examples/templates/build.ts"
   },
   "devDependencies": {

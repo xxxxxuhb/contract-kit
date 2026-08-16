@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   applyMarkers,
+  bindDocumentXml,
   escapeXml,
+  expandTableRows,
   extractText,
   isWordXmlPath,
   unescapeXml,
@@ -40,4 +42,37 @@ test('isWordXmlPath skips rels and non-word parts', () => {
   assert.equal(isWordXmlPath('word/header1.xml'), true)
   assert.equal(isWordXmlPath('word/_rels/document.xml.rels'), false)
   assert.equal(isWordXmlPath('[Content_Types].xml'), false)
+})
+
+test('expandTableRows clones template w:tr for each data row', () => {
+  const xml = `<w:tbl>
+    <w:tr><w:tc><w:p><w:r><w:t>表头</w:t></w:r></w:p></w:tc></w:tr>
+    <w:tr><w:tc><w:p><w:r><w:t>{{items.$index}}</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>{{items.name}}</w:t></w:r></w:p></w:tc></w:tr>
+    <w:tr><w:tc><w:p><w:r><w:t>合计{{amount}}</w:t></w:r></w:p></w:tc></w:tr>
+  </w:tbl>`
+  const expanded = expandTableRows(xml, {
+    items: [{ name: '苹果' }, { name: '橙' }],
+    amount: 9,
+  })
+  assert.equal((expanded.match(/<w:tr>/g) ?? []).length, 4)
+  assert.match(expanded, /苹果/)
+  assert.match(expanded, /橙/)
+  assert.match(expanded, /合计\{\{amount\}\}/)
+
+  const bound = bindDocumentXml(xml, {
+    items: [{ name: '苹果' }, { name: '橙' }],
+    amount: 9,
+  })
+  assert.match(bound, /合计9/)
+  assert.doesNotMatch(bound, /\{\{/)
+})
+
+test('expandTableRows removes template row when array is empty', () => {
+  const xml = `<w:tbl>
+    <w:tr><w:tc><w:p><w:r><w:t>H</w:t></w:r></w:p></w:tc></w:tr>
+    <w:tr><w:tc><w:p><w:r><w:t>{{items.name}}</w:t></w:r></w:p></w:tc></w:tr>
+  </w:tbl>`
+  const out = expandTableRows(xml, { items: [] })
+  assert.equal((out.match(/<w:tr>/g) ?? []).length, 1)
+  assert.doesNotMatch(out, /\{\{/)
 })

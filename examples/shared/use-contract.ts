@@ -9,6 +9,7 @@ import {
 } from '@contract-kit/kernel'
 import { DocxAdapter } from '@contract-kit/docx'
 import { XlsxAdapter } from '@contract-kit/xlsx'
+import { templateUrl } from './asset-url'
 
 function createByKind(kind: 'docx' | 'xlsx'): Kernel {
   return kind === 'docx'
@@ -62,8 +63,8 @@ export function useContract() {
     try {
       const basename = nextKind === 'docx' ? '采购合同.docx' : '采购合同.xlsx'
       const [fileRes, defRes] = await Promise.all([
-        fetch(`/templates/${encodeURIComponent(basename)}`),
-        fetch(`/templates/${encodeURIComponent(`${basename}.definition.json`)}`),
+        fetch(templateUrl(basename)),
+        fetch(templateUrl(`${basename}.definition.json`)),
       ])
       if (!fileRes.ok || !defRes.ok) {
         throw new Error('模板或字段定义缺失，请先运行 npx tsx examples/templates/build.ts')
@@ -75,7 +76,10 @@ export function useContract() {
         type: 'hydrate',
         source: { kind: nextKind, buffer },
         definition,
-        data: {},
+        data: {
+          items: [{}],
+          filledAt: new Date().toISOString().slice(0, 10),
+        },
       })
       attach(next, nextKind)
     } finally {
@@ -136,7 +140,7 @@ export function useContract() {
     if (!nextKind) throw new Error('请先打开合同文件')
     const basename = nextKind === 'docx' ? '采购合同.docx' : '采购合同.xlsx'
     const suffix = variant === 'alt' ? '.definition.alt.json' : '.definition.json'
-    const res = await fetch(`/templates/${encodeURIComponent(`${basename}${suffix}`)}`)
+    const res = await fetch(templateUrl(`${basename}${suffix}`))
     if (!res.ok) throw new Error(`缺少 ${basename}${suffix}，请先 npm run templates`)
     const definition = (await res.json()) as TemplateDefinition
     await applyDefinitionData(definition)

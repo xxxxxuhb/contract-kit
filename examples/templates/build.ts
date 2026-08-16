@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import JSZip from 'jszip'
 import ExcelJS from 'exceljs'
-import { createKernel, type TemplateDefinition } from '@contract-kit/kernel'
+import { createKernel, type FieldColumn, type TemplateDefinition } from '@contract-kit/kernel'
 import { DocxAdapter } from '@contract-kit/docx'
 import { XlsxAdapter } from '@contract-kit/xlsx'
 
@@ -11,6 +11,7 @@ type FieldMeta = {
   label: string
   required?: boolean
   options?: { value: string; label: string }[]
+  columns?: FieldColumn[]
 }
 
 /** 业务侧字段配置：随模板一起发布，不写进 Word/Excel 正文 */
@@ -23,10 +24,16 @@ const FIELD_META: Record<string, FieldMeta> = {
   partyB: { label: '乙方', required: true },
   partyBAddress: { label: '乙方地址' },
   partyBContact: { label: '乙方联系人' },
-  goods: { label: '货物名称', required: true },
-  spec: { label: '规格型号' },
-  qty: { label: '数量' },
-  unitPrice: { label: '单价' },
+  items: {
+    label: '货物明细',
+    required: true,
+    columns: [
+      { name: 'name', type: 'text', label: '货物名称', required: true },
+      { name: 'spec', type: 'text', label: '规格型号' },
+      { name: 'qty', type: 'number', label: '数量' },
+      { name: 'unitPrice', type: 'number', label: '单价' },
+    ],
+  },
   amount: { label: '合同金额' },
   payMethod: {
     label: '付款方式',
@@ -42,6 +49,7 @@ const FIELD_META: Record<string, FieldMeta> = {
   warranty: { label: '质保期限' },
   signDate: { label: '签订日期' },
   note: { label: '备注' },
+  filledAt: { label: '填写日' },
 }
 
 /**
@@ -57,10 +65,16 @@ const FIELD_META_ALT: Record<string, FieldMeta> = {
   partyB: { label: 'Party B', required: true },
   partyBAddress: { label: 'Party B address' },
   partyBContact: { label: 'Party B contact' },
-  goods: { label: 'Goods' },
-  spec: { label: 'Spec' },
-  qty: { label: 'Qty' },
-  unitPrice: { label: 'Unit price' },
+  items: {
+    label: 'Line items',
+    required: true,
+    columns: [
+      { name: 'name', type: 'text', label: 'Goods', required: true },
+      { name: 'spec', type: 'text', label: 'Spec' },
+      { name: 'qty', type: 'number', label: 'Qty' },
+      { name: 'unitPrice', type: 'number', label: 'Unit price' },
+    ],
+  },
   amount: { label: 'Amount', required: true },
   payMethod: {
     label: 'Payment method',
@@ -77,6 +91,7 @@ const FIELD_META_ALT: Record<string, FieldMeta> = {
   warranty: { label: 'Warranty' },
   signDate: { label: 'Sign date', required: true },
   note: { label: 'Notes' },
+  filledAt: { label: 'Filled on' },
 }
 
 async function publishDefinition(
@@ -96,6 +111,18 @@ async function publishDefinition(
     field.required = next.required
     if (next.options) field.options = next.options
     else delete field.options
+    if (next.columns) {
+      field.columns = next.columns.map((col) => {
+        const discovered = field.columns?.find((item) => item.name === col.name)
+        return {
+          name: col.name,
+          type: col.type ?? discovered?.type ?? 'text',
+          label: col.label ?? col.name,
+          required: col.required,
+          options: col.options,
+        }
+      })
+    }
   }
   return definition
 }
@@ -265,7 +292,13 @@ function infoTable(rows: Array<{ label: string; value: string; accent?: boolean 
 function goodsTable(): string {
   const widths = [700, 2800, 2200, 1400, 1940]
   const header = ['序号', '货物名称', '规格型号', '数量', '单价（元）']
-  const values = ['1', '{{goods}}', '{{spec}}', '{{qty:number}}', '{{unitPrice:number}}']
+  const values = [
+    '{{items.$index}}',
+    '{{items.name}}',
+    '{{items.spec}}',
+    '{{items.qty:number}}',
+    '{{items.unitPrice:number}}',
+  ]
   const headerRow = `<w:tr>${header
     .map((h, i) =>
       cellXml(h, widths[i], {
@@ -398,6 +431,7 @@ async function makeDocx(): Promise<Uint8Array> {
     infoTable([
       { label: '签订日期', value: '{{signDate:date}}' },
       { label: '备注说明', value: '{{note:textarea}}', accent: true },
+      { label: '填写日', value: '{{filledAt:display}}' },
     ]),
     paragraph('', { before: 200 }),
     sectionTitle('五、签章确认'),
@@ -519,10 +553,6 @@ async function makeXlsx(): Promise<Uint8Array> {
     ['乙方（供货方）', '{{partyB}}'],
     ['乙方地址', '{{partyBAddress}}'],
     ['乙方联系人', '{{partyBContact}}'],
-    ['货物名称', '{{goods}}'],
-    ['规格型号', '{{spec}}'],
-    ['数量', '{{qty:number}}'],
-    ['单价（元）', '{{unitPrice:number}}'],
     ['合同金额（元）', '{{amount:number}}'],
     ['付款方式', '{{payMethod:select}}'],
     ['付款期限', '{{payTerm}}'],
@@ -531,13 +561,38 @@ async function makeXlsx(): Promise<Uint8Array> {
     ['质保期限', '{{warranty}}'],
     ['签订日期', '{{signDate:date}}'],
     ['备注说明', '{{note:textarea}}'],
+    ['填写日', '{{filledAt:display}}'],
   ]
   rows.forEach(([label, marker], i) => paintRow(i + 4, label, marker, i % 2 === 1))
+
+  // 循环明细表：表头 + 一行模板
+  const itemsHeader = 4 + rows.length + 1
+  const itemsRow = itemsHeader + 1
+  sheet.getCell(`A${itemsHeader}`).value = '序号'
+  sheet.getCell(`B${itemsHeader}`).value = '货物名称'
+  sheet.getCell(`C${itemsHeader}`).value = '规格型号'
+  sheet.getCell(`D${itemsHeader}`).value = '数量'
+  sheet.getCell(`E${itemsHeader}`).value = '单价'
+  for (const col of ['A', 'B', 'C', 'D', 'E']) {
+    const cell = sheet.getCell(`${col}${itemsHeader}`)
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${COLORS.navy}` } }
+    cell.border = thin
+  }
+  sheet.getCell(`A${itemsRow}`).value = '{{items.$index}}'
+  sheet.getCell(`B${itemsRow}`).value = '{{items.name}}'
+  sheet.getCell(`C${itemsRow}`).value = '{{items.spec}}'
+  sheet.getCell(`D${itemsRow}`).value = '{{items.qty:number}}'
+  sheet.getCell(`E${itemsRow}`).value = '{{items.unitPrice:number}}'
+  for (const col of ['A', 'B', 'C', 'D', 'E']) {
+    sheet.getCell(`${col}${itemsRow}`).border = thin
+  }
 
   sheet.getColumn(1).width = 18
   sheet.getColumn(2).width = 18
   sheet.getColumn(3).width = 18
-  sheet.getColumn(4).width = 18
+  sheet.getColumn(4).width = 12
+  sheet.getColumn(5).width = 12
 
   const buffer = await workbook.xlsx.writeBuffer()
   return new Uint8Array(buffer)

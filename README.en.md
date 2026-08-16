@@ -26,6 +26,8 @@ Party A: {{partyA}}
 Amount: {{amount:number}}
 Payment: {{payMethod:select}}
 Sign date: {{signDate:date}}
+Line items: {{items.name}} / {{items.qty:number}}  (repeating rows; data.items[])
+Read-only: {{filledAt:display}}  (dynamic data, no input control)
 ```
 
 Persist three artifacts at runtime:
@@ -126,7 +128,15 @@ npm install
 npm run templates          # purchase-contract templates + definition.json
 npm run example:native     # http://localhost:5199  native field UI
 npm run example:custom     # http://localhost:5200  Element Plus custom fields
+npm run build:examples     # static site → dist-examples/ (Pages artifact)
 ```
+
+Live demos (GitHub Pages; auto-deploys on push to `main` / `v2`):
+
+- https://xxxxxuhb.github.io/contract-kit/
+- [native-ui](https://xxxxxuhb.github.io/contract-kit/native/) · [custom-ui](https://xxxxxuhb.github.io/contract-kit/custom/)
+
+Set **Settings → Pages → Source** to **GitHub Actions** once before the first deploy.
 
 | Path | Description |
 |------|-------------|

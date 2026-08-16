@@ -1,5 +1,6 @@
 import { hashBytes } from './hash'
 import { createId } from './id'
+import { cloneData, setDataPath } from './path'
 import { buildFormSchema, buildView, emptyValidation, validateState } from './schema'
 import type {
   Command,
@@ -14,10 +15,6 @@ import type {
   TemplateDefinition,
   ViewportPort,
 } from './types'
-
-function cloneData(data: Record<string, unknown>): Record<string, unknown> {
-  return { ...data }
-}
 
 export function createKernel(options: CreateKernelOptions): Kernel {
   const adapter: DocumentAdapter = options.adapter
@@ -175,7 +172,7 @@ export function createKernel(options: CreateKernelOptions): Kernel {
 
       case 'setValue': {
         requireDefinition()
-        state.data = { ...state.data, [command.path]: command.value }
+        state.data = setDataPath(state.data, command.path, command.value)
         refreshValidation()
         emit({ type: 'data-changed' })
         return { type: 'ok' }

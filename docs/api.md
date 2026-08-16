@@ -28,24 +28,60 @@ npm i contract-kit
 ```text
 {{name}}
 {{name:type}}
+{{items.col}}
+{{items.col:number}}
+{{items.$index}}
 ```
 
 | 项 | 说明 |
 |----|------|
 | `name` | 字段名（data / definition 的 key） |
 | `type` | 可选；缺省为 `text` |
+| `items.col` | **循环明细表**列标记：表字段名 + `.` + 列名 |
+| `items.$index` | 可选；导出/预览时替换为 1-based 行号 |
 
-支持的 `type`：`text` | `textarea` | `number` | `date` | `select` | `multiselect` | `table` | `image`。
+支持的 `type`：`text` | `textarea` | `number` | `date` | `select` | `multiselect` | `table` | `image` | `display`。
 
-> `label` / `required` / `options` **不在标记里**，写在 `TemplateDefinition`。
+> `label` / `required` / `options` / 表 `columns` **不在标记里**，写在 `TemplateDefinition`。  
+> `image` 类型仅预留，尚未实现嵌图。  
+> `display`：纯展示，data 仍可 `setValue` / 导出替换，预览不渲染输入框（适合联动结果、系统填入的日期等）。
+
+### 循环明细表
+
+模板中保留**一行**带 `{{items.*}}` 的行作为行模板；表头/合计用普通扁平标记。
+
+```ts
+// data
+{ items: [{ name: '苹果', qty: 10 }, { name: '橙', qty: 5 }], amount: 100 }
+
+// definition 字段（discover 自动聚合成 type: 'table'）
+{
+  name: 'items',
+  type: 'table',
+  columns: [
+    { name: 'name', type: 'text', label: '货物名称', required: true },
+    { name: 'qty', type: 'number', label: '数量' },
+  ],
+  anchor: { kind: 'marker', name: 'items' }
+}
+```
+
+`setValue` 支持：
+
+- `items` — 整表数组  
+- `items.0.qty` — 单元格  
+
+导出时 docx/xlsx 按数组长度克隆模板行。校验：`table.required` → 非空数组；列 `required` → `items.i.col`。
 
 辅助函数（`contract-kit`）：
 
 | 函数 | 说明 |
 |------|------|
 | `parseMarkers(text)` | 解析去重后的标记列表 |
+| `aggregateMarkerFields(markers)` | 将 `items.col` 聚成一个 `table` 字段 + columns |
 | `splitByMarkers(text)` | 拆成 `text` / `field` 段（预览挂控件用） |
-| `replaceMarkers(text, data)` | 用 data 替换标记文本 |
+| `replaceMarkers(text, data)` | 用 data 替换扁平标记 |
+| `replaceRowMarkers(text, table, row, index)` | 替换一行内的 `table.col` / `$index` |
 | `stringifyFieldValue(value)` | 导出时把值转成字符串 |
 
 ---
@@ -72,7 +108,16 @@ interface Field {
   label?: string
   required?: boolean
   options?: { value: string; label: string }[]
+  columns?: FieldColumn[] // type === 'table'
   anchor: Anchor
+}
+
+interface FieldColumn {
+  name: string
+  type: FieldType
+  label?: string
+  required?: boolean
+  options?: FieldOption[]
 }
 ```
 
@@ -104,6 +149,7 @@ interface ValidationResult {
 
 1. `required` 且值为 `undefined` / `null` / `''` →「必填」
 2. `select` 有值但不在 `options` →「不在选项中」
+3. `table.required` 且数组为空 →「必填」；列 `required` → `items.0.name` 等路径
 
 ### `FormSchema`
 

@@ -4,6 +4,8 @@ import { defineConfig } from 'vite'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 const root = fileURLToPath(new URL('.', import.meta.url))
+const base = process.env.EXAMPLE_BASE ?? '/'
+const outDir = process.env.EXAMPLE_OUT_DIR ?? 'dist'
 
 export default defineConfig({
   plugins: [
@@ -13,6 +15,11 @@ export default defineConfig({
       globals: { Buffer: true, process: true },
     }),
   ],
+  base,
+  build: {
+    outDir,
+    emptyOutDir: true,
+  },
   server: {
     port: 5199,
     strictPort: true,

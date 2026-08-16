@@ -1,7 +1,12 @@
 import {
+  aggregateMarkerFields,
   parseMarkers,
+  parseTableColumnRef,
   replaceMarkers,
+  replaceRowMarkers,
   splitByMarkers,
+  tableNamesInText,
+  textHasTableMarkers,
   type DiscoveredField,
   type DocumentAdapter,
   type Field,
@@ -50,6 +55,61 @@ function cellText(value: ExcelJS.CellValue): string {
   return ''
 }
 
+function asRow(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return {}
+}
+
+function rowPlainText(row: ExcelJS.Row): string {
+  const parts: string[] = []
+  row.eachCell({ includeEmpty: true }, (cell) => {
+    parts.push(cellText(cell.value))
+  })
+  return parts.join('\n')
+}
+
+function expandSheetTables(sheet: ExcelJS.Worksheet, data: Record<string, unknown>): void {
+  // Collect template rows first (row numbers may shift)
+  type Hit = { tableName: string; rowNumber: number }
+  const hits: Hit[] = []
+  const seenTables = new Set<string>()
+  sheet.eachRow((row, rowNumber) => {
+    const text = rowPlainText(row)
+    for (const tableName of tableNamesInText(text)) {
+      if (seenTables.has(tableName)) continue
+      if (!textHasTableMarkers(text, tableName)) continue
+      seenTables.add(tableName)
+      hits.push({ tableName, rowNumber })
+    }
+  })
+
+  // Process from bottom to top so earlier row numbers stay stable
+  hits.sort((a, b) => b.rowNumber - a.rowNumber)
+  for (const hit of hits) {
+    const rows = Array.isArray(data[hit.tableName]) ? (data[hit.tableName] as unknown[]) : []
+    const templateRow = hit.rowNumber
+    if (rows.length === 0) {
+      sheet.spliceRows(templateRow, 1)
+      continue
+    }
+    if (rows.length > 1) {
+      sheet.duplicateRow(templateRow, rows.length - 1, true)
+    }
+    for (let i = 0; i < rows.length; i++) {
+      const excelRow = sheet.getRow(templateRow + i)
+      const record = asRow(rows[i])
+      excelRow.eachCell({ includeEmpty: true }, (cell) => {
+        const text = cellText(cell.value)
+        if (!text.includes('{{')) return
+        const next = replaceRowMarkers(text, hit.tableName, record, i)
+        if (next !== text) cell.value = next
+      })
+    }
+  }
+}
+
 export class XlsxAdapter implements DocumentAdapter {
   readonly kind = 'xlsx' as const
   private original: Uint8Array | null = null
@@ -69,25 +129,38 @@ export class XlsxAdapter implements DocumentAdapter {
 
   async discoverFields(): Promise<DiscoveredField[]> {
     if (!this.workbook) return []
-    const fields: DiscoveredField[] = []
-    const seen = new Set<string>()
+    const texts: string[] = []
+    const firstAnchor = new Map<string, { sheet: string; address: string }>()
     for (const sheet of this.workbook.worksheets) {
       sheet.eachRow((row) => {
         row.eachCell((cell) => {
-          for (const marker of parseMarkers(cellText(cell.value))) {
-            if (seen.has(marker.name)) continue
-            seen.add(marker.name)
-            fields.push({
-              name: marker.name,
-              type: marker.type,
-              label: marker.name,
-              anchor: { kind: 'cell', sheet: sheet.name, address: cell.address },
-            })
+          const text = cellText(cell.value)
+          if (!text.includes('{{')) return
+          texts.push(text)
+          for (const marker of parseMarkers(text)) {
+            const ref = parseTableColumnRef(marker.name)
+            const key = ref ? ref.table : marker.name
+            if (!firstAnchor.has(key)) {
+              firstAnchor.set(key, { sheet: sheet.name, address: cell.address })
+            }
           }
         })
       })
     }
-    return fields
+    return aggregateMarkerFields(parseMarkers(texts.join('\n'))).map((field) => {
+      const anchor = firstAnchor.get(field.name)
+      return {
+        name: field.name,
+        type: field.type,
+        label: field.name,
+        columns: field.columns,
+        anchor: {
+          kind: 'cell' as const,
+          sheet: anchor?.sheet ?? this.workbook!.worksheets[0]?.name ?? 'Sheet1',
+          address: anchor?.address ?? 'A1',
+        },
+      }
+    })
   }
 
   getPreview(): PreviewModel {
@@ -163,6 +236,7 @@ export class XlsxAdapter implements DocumentAdapter {
     const workbook = new ExcelJS.Workbook()
     await workbook.xlsx.load(this.original as unknown as ExcelJS.Buffer)
     for (const sheet of workbook.worksheets) {
+      expandSheetTables(sheet, data)
       sheet.eachRow((row) => {
         row.eachCell((cell) => {
           const text = cellText(cell.value)

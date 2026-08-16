@@ -2,9 +2,43 @@
   "version": 1,
   "source": {
     "kind": "docx",
-    "hash": "fc129a9565f00d12b981b3aefabbdf2f0ea0001037e2025bd224702437a27dfd"
+    "hash": "0228a0f98457565f914a3329d7da9fcbeabccbb8d402054c367452e640618121"
   },
   "fields": [
+    {
+      "name": "items",
+      "type": "table",
+      "label": "货物明细",
+      "columns": [
+        {
+          "name": "name",
+          "type": "text",
+          "label": "货物名称",
+          "required": true
+        },
+        {
+          "name": "spec",
+          "type": "text",
+          "label": "规格型号"
+        },
+        {
+          "name": "qty",
+          "type": "number",
+          "label": "数量"
+        },
+        {
+          "name": "unitPrice",
+          "type": "number",
+          "label": "单价"
+        }
+      ],
+      "anchor": {
+        "kind": "marker",
+        "name": "items"
+      },
+      "id": "adc91a60-8cca-4dfd-b2b8-73b715837740",
+      "required": true
+    },
     {
       "name": "contractNo",
       "type": "text",
@@ -13,7 +47,7 @@
         "kind": "marker",
         "name": "contractNo"
       },
-      "id": "db9dc27a-ce17-45ad-b4d4-b1741bb79e0b",
+      "id": "55609f2b-18eb-4bb1-b549-e2f4e9582612",
       "required": true
     },
     {
@@ -24,7 +58,7 @@
         "kind": "marker",
         "name": "signPlace"
       },
-      "id": "851bfe72-cdb6-437c-a993-6d2eb7ba9760"
+      "id": "9813d453-8600-47ac-96b7-1c3a87441d95"
     },
     {
       "name": "partyA",
@@ -34,7 +68,7 @@
         "kind": "marker",
         "name": "partyA"
       },
-      "id": "e55a117e-789f-4876-86c1-bf372e7c9b8a",
+      "id": "5320983b-65e1-4909-a771-73e751a0d007",
       "required": true
     },
     {
@@ -45,7 +79,7 @@
         "kind": "marker",
         "name": "partyAAddress"
       },
-      "id": "e5f8ca5c-0e38-45b1-b09a-d79eef1b20b8"
+      "id": "c1ae5b4f-e61d-48c6-8b43-31ab12093823"
     },
     {
       "name": "partyAContact",
@@ -55,7 +89,7 @@
         "kind": "marker",
         "name": "partyAContact"
       },
-      "id": "1f9d093b-39d0-4305-8be2-c0f15f247698"
+      "id": "06bce15a-e8ce-42e9-984b-f01259cdec00"
     },
     {
       "name": "partyB",
@@ -65,7 +99,7 @@
         "kind": "marker",
         "name": "partyB"
       },
-      "id": "74e67250-5de7-4dc2-9cce-25db84d22efe",
+      "id": "325d3b94-4947-486d-bd13-04026cd7d091",
       "required": true
     },
     {
@@ -76,7 +110,7 @@
         "kind": "marker",
         "name": "partyBAddress"
       },
-      "id": "0c307b13-a574-4569-b545-d0e8f48cd0fb"
+      "id": "57c31807-9b8d-4061-951f-6afff310a1d4"
     },
     {
       "name": "partyBContact",
@@ -86,48 +120,7 @@
         "kind": "marker",
         "name": "partyBContact"
       },
-      "id": "0a396755-fe24-459a-9b13-738c1df30800"
-    },
-    {
-      "name": "goods",
-      "type": "text",
-      "label": "货物名称",
-      "anchor": {
-        "kind": "marker",
-        "name": "goods"
-      },
-      "id": "1a3481c0-eca5-4da8-803d-90c6c9f930e2",
-      "required": true
-    },
-    {
-      "name": "spec",
-      "type": "text",
-      "label": "规格型号",
-      "anchor": {
-        "kind": "marker",
-        "name": "spec"
-      },
-      "id": "df2f7638-aafe-44ce-8a94-756e34c22e21"
-    },
-    {
-      "name": "qty",
-      "type": "number",
-      "label": "数量",
-      "anchor": {
-        "kind": "marker",
-        "name": "qty"
-      },
-      "id": "c3194a46-fb08-4952-8f79-20194d46846b"
-    },
-    {
-      "name": "unitPrice",
-      "type": "number",
-      "label": "单价",
-      "anchor": {
-        "kind": "marker",
-        "name": "unitPrice"
-      },
-      "id": "68c51574-2c97-4db4-ba31-a48e2fcb8b84"
+      "id": "d004356a-de44-4f08-be96-86625a965010"
     },
     {
       "name": "amount",
@@ -137,7 +130,7 @@
         "kind": "marker",
         "name": "amount"
       },
-      "id": "753e15c8-7af7-48af-ae77-f41ef320fa93"
+      "id": "b2eaf21f-0d9d-4dcd-86fd-9708e14c7aff"
     },
     {
       "name": "payMethod",
@@ -147,7 +140,7 @@
         "kind": "marker",
         "name": "payMethod"
       },
-      "id": "a2b2adb9-e006-4434-9748-9f4eaaace7a3",
+      "id": "4afa443a-03f1-4ec1-ab24-bbcb4baee7a3",
       "options": [
         {
           "value": "wire",
@@ -171,7 +164,7 @@
         "kind": "marker",
         "name": "payTerm"
       },
-      "id": "2d023188-9c6c-4efc-bfad-3bf25a06f4e6"
+      "id": "3160abc4-4381-440d-bf08-9dcd880467b8"
     },
     {
       "name": "deliveryDate",
@@ -181,7 +174,7 @@
         "kind": "marker",
         "name": "deliveryDate"
       },
-      "id": "c656070e-984a-40ee-8c60-79f8656036c2"
+      "id": "93e1453b-6242-4a3e-88b1-42b34debe892"
     },
     {
       "name": "deliveryPlace",
@@ -191,7 +184,7 @@
         "kind": "marker",
         "name": "deliveryPlace"
       },
-      "id": "0b9dfaf3-298d-44a5-90f5-765628923fa2"
+      "id": "860a7f79-6989-4612-87be-adf0f0804c83"
     },
     {
       "name": "warranty",
@@ -201,7 +194,7 @@
         "kind": "marker",
         "name": "warranty"
       },
-      "id": "78069397-6e61-4d51-bf95-7a25328ab04f"
+      "id": "b8f171b0-dacc-4820-84fa-e3df95df67d7"
     },
     {
       "name": "signDate",
@@ -211,7 +204,7 @@
         "kind": "marker",
         "name": "signDate"
       },
-      "id": "fdd03d60-56ab-48c8-8b50-fd5623cd18fe"
+      "id": "ec6797b6-74eb-43b3-91a8-32c1387e240f"
     },
     {
       "name": "note",
@@ -221,7 +214,17 @@
         "kind": "marker",
         "name": "note"
       },
-      "id": "3dad0a27-747b-43a0-b040-a41ddef36219"
+      "id": "0192a077-f3e0-4d2b-9a0e-ede1c17948f2"
+    },
+    {
+      "name": "filledAt",
+      "type": "display",
+      "label": "填写日",
+      "anchor": {
+        "kind": "marker",
+        "name": "filledAt"
+      },
+      "id": "789036cb-e8e8-4b3e-8c9d-17db57a0f0bc"
     }
   ]
 }

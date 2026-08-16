@@ -99,4 +99,23 @@ describe('createField', () => {
       assert.equal(input.value, '2')
     })
   })
+
+  it('display type renders text without inputs', () => {
+    withDom(() => {
+      const values: unknown[] = []
+      const handle = createField({
+        name: 'filledAt',
+        field: { name: 'filledAt', type: 'display', label: '填写日', value: '2026-08-16' },
+        onChange: (v) => values.push(v),
+      })
+      assert.equal(handle.el.querySelector('input'), null)
+      const text = handle.el.querySelector('.ck-field-display')
+      assert.ok(text)
+      assert.equal(text.textContent, '2026-08-16')
+      handle.update({ value: '2026-08-17' })
+      assert.equal(text.textContent, '2026-08-17')
+      assert.deepEqual(values, [])
+      handle.destroy()
+    })
+  })
 })

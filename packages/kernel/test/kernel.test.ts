@@ -231,3 +231,20 @@ test('subscribe can unsubscribe', async () => {
   await kernel.dispatch({ type: 'setValue', path: 'partyA', value: 'x' })
   assert.equal(events.length, count)
 })
+
+test('setValue supports nested table cell paths', async () => {
+  const adapter = new MemoryAdapter()
+  adapter.discovered = [
+    {
+      name: 'items',
+      type: 'table',
+      columns: [{ name: 'name', type: 'text', required: true }],
+      anchor: { kind: 'marker', name: 'items' },
+    },
+  ]
+  const kernel = createKernel({ adapter })
+  await kernel.dispatch({ type: 'load', source: source() })
+  await kernel.dispatch({ type: 'setValue', path: 'items.0.name', value: '苹果' })
+  assert.deepEqual(kernel.getData(), { items: [{ name: '苹果' }] })
+  assert.equal(kernel.validate().ok, true)
+})

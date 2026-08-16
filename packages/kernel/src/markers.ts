@@ -1,4 +1,4 @@
-import type { FieldType } from './types'
+import type { FieldColumn, FieldType } from './types'
 
 const FIELD_TYPES = new Set<string>([
   'text',
@@ -9,6 +9,7 @@ const FIELD_TYPES = new Set<string>([
   'multiselect',
   'table',
   'image',
+  'display',
 ])
 
 const MARKER_RE =
@@ -18,6 +19,21 @@ export interface ParsedMarker {
   name: string
   type: FieldType
   raw: string
+}
+
+export type TableColumnRef = {
+  table: string
+  column: string
+}
+
+/** `items.name` / `items.$index` → table ref; plain `partyA` → null */
+export function parseTableColumnRef(markerName: string): TableColumnRef | null {
+  const dot = markerName.indexOf('.')
+  if (dot <= 0 || dot === markerName.length - 1) return null
+  const table = markerName.slice(0, dot)
+  const column = markerName.slice(dot + 1)
+  if (!table || !column || column.includes('.')) return null
+  return { table, column }
 }
 
 export function parseMarkers(text: string): ParsedMarker[] {
@@ -33,6 +49,54 @@ export function parseMarkers(text: string): ParsedMarker[] {
     const type: FieldType =
       typeName && FIELD_TYPES.has(typeName) ? (typeName as FieldType) : 'text'
     out.push({ name, type, raw: match[0] })
+  }
+  return out
+}
+
+/**
+ * Collapse `items.name` / `items.qty` markers into one `table` field + columns.
+ * `$index` is not a column. Flat markers stay as-is.
+ */
+export function aggregateMarkerFields(markers: ParsedMarker[]): Array<{
+  name: string
+  type: FieldType
+  columns?: FieldColumn[]
+}> {
+  const tables = new Map<string, Map<string, FieldType>>()
+  const flat: Array<{ name: string; type: FieldType }> = []
+  const flatSeen = new Set<string>()
+
+  for (const marker of markers) {
+    const ref = parseTableColumnRef(marker.name)
+    if (ref) {
+      if (ref.column === '$index') continue
+      let cols = tables.get(ref.table)
+      if (!cols) {
+        cols = new Map()
+        tables.set(ref.table, cols)
+      }
+      if (!cols.has(ref.column)) cols.set(ref.column, marker.type)
+      continue
+    }
+    if (flatSeen.has(marker.name)) continue
+    flatSeen.add(marker.name)
+    flat.push({ name: marker.name, type: marker.type })
+  }
+
+  const out: Array<{ name: string; type: FieldType; columns?: FieldColumn[] }> = []
+  for (const [name, cols] of tables) {
+    out.push({
+      name,
+      type: 'table',
+      columns: [...cols.entries()].map(([colName, colType]) => ({
+        name: colName,
+        type: colType,
+        label: colName,
+      })),
+    })
+  }
+  for (const item of flat) {
+    out.push({ name: item.name, type: item.type })
   }
   return out
 }
@@ -64,7 +128,49 @@ export function splitByMarkers(text: string): MarkerSegment[] {
   return out
 }
 
+/** Flat replace: `{{partyA}}` from data[partyA]. Dotted keys use data['items.name'] if present. */
 export function replaceMarkers(text: string, data: Record<string, unknown>): string {
   const re = new RegExp(MARKER_RE.source, 'g')
   return text.replace(re, (_raw, name: string) => stringifyFieldValue(data[name]))
+}
+
+/**
+ * Replace only `{{tableName.col}}` / `{{tableName.$index}}` for one row.
+ * Other markers are left unchanged for a later flat pass.
+ */
+export function replaceRowMarkers(
+  text: string,
+  tableName: string,
+  row: Record<string, unknown>,
+  index: number,
+): string {
+  const re = new RegExp(MARKER_RE.source, 'g')
+  const prefix = `${tableName}.`
+  return text.replace(re, (raw, name: string) => {
+    if (!name.startsWith(prefix)) return raw
+    const column = name.slice(prefix.length)
+    if (column === '$index') return String(index + 1)
+    return stringifyFieldValue(row[column])
+  })
+}
+
+/** True if text contains any `{{tableName.}}` marker */
+export function textHasTableMarkers(text: string, tableName?: string): boolean {
+  const markers = parseMarkers(text)
+  for (const marker of markers) {
+    const ref = parseTableColumnRef(marker.name)
+    if (!ref) continue
+    if (!tableName || ref.table === tableName) return true
+  }
+  return false
+}
+
+/** Table field names referenced by dotted markers in text */
+export function tableNamesInText(text: string): string[] {
+  const names = new Set<string>()
+  for (const marker of parseMarkers(text)) {
+    const ref = parseTableColumnRef(marker.name)
+    if (ref) names.add(ref.table)
+  }
+  return [...names]
 }

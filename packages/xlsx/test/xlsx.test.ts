@@ -74,3 +74,45 @@ test('XlsxAdapter rejects a non-xlsx source', async () => {
     /only accepts xlsx/,
   )
 })
+
+async function makeItemsXlsx(): Promise<Uint8Array> {
+  const workbook = new ExcelJS.Workbook()
+  const sheet = workbook.addWorksheet('合同')
+  sheet.getCell('A1').value = '序号'
+  sheet.getCell('B1').value = '货物'
+  sheet.getCell('A2').value = '{{items.$index}}'
+  sheet.getCell('B2').value = '{{items.name}}'
+  sheet.getCell('A3').value = '备注'
+  sheet.getCell('B3').value = '{{note}}'
+  const buffer = await workbook.xlsx.writeBuffer()
+  return new Uint8Array(buffer)
+}
+
+test('xlsx discovers table fields and expands rows on export', async () => {
+  const buffer = await makeItemsXlsx()
+  const kernel = createKernel({ adapter: new XlsxAdapter() })
+  await kernel.dispatch({ type: 'load', source: { kind: 'xlsx', buffer } })
+  const fields = kernel.getFormSchema().fields
+  assert.ok(fields.some((f) => f.name === 'items' && f.type === 'table'))
+  assert.ok(fields.some((f) => f.name === 'note'))
+
+  await kernel.dispatch({
+    type: 'setData',
+    data: {
+      items: [{ name: '苹果' }, { name: '橙' }],
+      note: 'ok',
+    },
+  })
+  const result = await kernel.dispatch({ type: 'export' })
+  assert.equal(result.type, 'exported')
+  if (result.type !== 'exported') return
+
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.load(result.buffer as unknown as ExcelJS.Buffer)
+  const sheet = workbook.getWorksheet('合同')!
+  assert.equal(String(sheet.getCell('A2').value), '1')
+  assert.equal(String(sheet.getCell('B2').value), '苹果')
+  assert.equal(String(sheet.getCell('A3').value), '2')
+  assert.equal(String(sheet.getCell('B3').value), '橙')
+  assert.equal(String(sheet.getCell('B4').value), 'ok')
+})

@@ -2,9 +2,44 @@
   "version": 1,
   "source": {
     "kind": "xlsx",
-    "hash": "4ddd68b851ae584034773009608d3d97d54343f13a7e30081dd101f4952d4e0a"
+    "hash": "fb695dd50156f60511ebe08ba78c9dda86a1e63a0520b5fd773536cf8ee63607"
   },
   "fields": [
+    {
+      "name": "items",
+      "type": "table",
+      "label": "货物明细",
+      "columns": [
+        {
+          "name": "name",
+          "type": "text",
+          "label": "货物名称",
+          "required": true
+        },
+        {
+          "name": "spec",
+          "type": "text",
+          "label": "规格型号"
+        },
+        {
+          "name": "qty",
+          "type": "number",
+          "label": "数量"
+        },
+        {
+          "name": "unitPrice",
+          "type": "number",
+          "label": "单价"
+        }
+      ],
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "A23"
+      },
+      "id": "514435f2-cab9-4edf-b8de-5a638981a0fe",
+      "required": true
+    },
     {
       "name": "contractNo",
       "type": "text",
@@ -14,7 +49,7 @@
         "sheet": "采购合同",
         "address": "B4"
       },
-      "id": "5e5dfd1b-660c-4e82-a508-b1710bdb2346",
+      "id": "cc12b9e3-8b75-42de-8f9c-ed8a2f92edfb",
       "required": true
     },
     {
@@ -26,7 +61,7 @@
         "sheet": "采购合同",
         "address": "B5"
       },
-      "id": "d21278d5-2759-43b5-a0dc-ff059968ca45"
+      "id": "a0b625c7-a6ef-45ed-a706-e99315fa3308"
     },
     {
       "name": "partyA",
@@ -37,7 +72,7 @@
         "sheet": "采购合同",
         "address": "B6"
       },
-      "id": "8702bc2b-5650-4d7e-865d-40d5b770aedb",
+      "id": "14a91d45-4664-4380-ba08-05db555299b5",
       "required": true
     },
     {
@@ -49,7 +84,7 @@
         "sheet": "采购合同",
         "address": "B7"
       },
-      "id": "0d236c80-8dff-49bf-8273-16e806bb27a2"
+      "id": "1787f90d-b8be-4488-b4a8-ef65c56f6c55"
     },
     {
       "name": "partyAContact",
@@ -60,7 +95,7 @@
         "sheet": "采购合同",
         "address": "B8"
       },
-      "id": "0236248a-2aae-4bf4-80ef-54f8a2223c46"
+      "id": "0ee9a126-4f7b-49b7-929c-e94c76d191ba"
     },
     {
       "name": "partyB",
@@ -71,7 +106,7 @@
         "sheet": "采购合同",
         "address": "B9"
       },
-      "id": "c3d2cf92-9a5e-4d8e-8719-87a592d70570",
+      "id": "063ed16d-a553-4837-9d07-f310e976d848",
       "required": true
     },
     {
@@ -83,7 +118,7 @@
         "sheet": "采购合同",
         "address": "B10"
       },
-      "id": "4556a7d9-c963-4904-825c-014510234b79"
+      "id": "8370e4c4-76af-4e25-b6c8-0f0b74836e88"
     },
     {
       "name": "partyBContact",
@@ -94,52 +129,7 @@
         "sheet": "采购合同",
         "address": "B11"
       },
-      "id": "f4280ca4-40a9-4ae1-b333-0e69790cb050"
-    },
-    {
-      "name": "goods",
-      "type": "text",
-      "label": "货物名称",
-      "anchor": {
-        "kind": "cell",
-        "sheet": "采购合同",
-        "address": "B12"
-      },
-      "id": "4c9d39fa-15b3-455a-8905-827391caa745",
-      "required": true
-    },
-    {
-      "name": "spec",
-      "type": "text",
-      "label": "规格型号",
-      "anchor": {
-        "kind": "cell",
-        "sheet": "采购合同",
-        "address": "B13"
-      },
-      "id": "d31c69fc-7387-48d6-b82c-fb4420d3ff90"
-    },
-    {
-      "name": "qty",
-      "type": "number",
-      "label": "数量",
-      "anchor": {
-        "kind": "cell",
-        "sheet": "采购合同",
-        "address": "B14"
-      },
-      "id": "235ec7f6-e9a8-4f12-92f2-00039363738f"
-    },
-    {
-      "name": "unitPrice",
-      "type": "number",
-      "label": "单价",
-      "anchor": {
-        "kind": "cell",
-        "sheet": "采购合同",
-        "address": "B15"
-      },
-      "id": "a4819656-c559-459a-9ae9-2219fb3fb486"
+      "id": "f14ee6dc-cd9c-489b-a111-8ac42b04ed67"
     },
     {
       "name": "amount",
@@ -148,9 +138,9 @@
       "anchor": {
         "kind": "cell",
         "sheet": "采购合同",
-        "address": "B16"
+        "address": "B12"
       },
-      "id": "86f15a8d-3b9c-4305-b58c-a700346598ed"
+      "id": "084cbf8a-9f19-41b6-87c0-54e27dfb9c3a"
     },
     {
       "name": "payMethod",
@@ -159,9 +149,9 @@
       "anchor": {
         "kind": "cell",
         "sheet": "采购合同",
-        "address": "B17"
+        "address": "B13"
       },
-      "id": "e5be1849-548f-46c6-bed0-0f655e1169d7",
+      "id": "5bceb137-264a-44ac-9813-3c9ea6825146",
       "options": [
         {
           "value": "wire",
@@ -184,9 +174,9 @@
       "anchor": {
         "kind": "cell",
         "sheet": "采购合同",
-        "address": "B18"
+        "address": "B14"
       },
-      "id": "3f4a1f1f-4c6e-437d-a2a7-f7829c6b6bdd"
+      "id": "f4eacaf4-7322-46d9-a4c8-5fd5eb64575f"
     },
     {
       "name": "deliveryDate",
@@ -195,9 +185,9 @@
       "anchor": {
         "kind": "cell",
         "sheet": "采购合同",
-        "address": "B19"
+        "address": "B15"
       },
-      "id": "10439bb0-a04f-4513-9516-2690d485569b"
+      "id": "c056718e-d9f7-4e8b-a69e-48e756de6375"
     },
     {
       "name": "deliveryPlace",
@@ -206,9 +196,9 @@
       "anchor": {
         "kind": "cell",
         "sheet": "采购合同",
-        "address": "B20"
+        "address": "B16"
       },
-      "id": "19e71030-3b0f-44aa-94ce-ba242e918cb1"
+      "id": "a0aca26b-f1a2-493a-8d71-5a7ea8759b3c"
     },
     {
       "name": "warranty",
@@ -217,9 +207,9 @@
       "anchor": {
         "kind": "cell",
         "sheet": "采购合同",
-        "address": "B21"
+        "address": "B17"
       },
-      "id": "3e172165-73ac-4777-9623-44853e7699a6"
+      "id": "7134b861-0474-4187-8729-04f1117b47c5"
     },
     {
       "name": "signDate",
@@ -228,9 +218,9 @@
       "anchor": {
         "kind": "cell",
         "sheet": "采购合同",
-        "address": "B22"
+        "address": "B18"
       },
-      "id": "adc7f4d1-16a0-49c6-8d30-e0c3bf6573b8"
+      "id": "b02fffdb-ce92-4fa2-998f-a531e16004db"
     },
     {
       "name": "note",
@@ -239,9 +229,20 @@
       "anchor": {
         "kind": "cell",
         "sheet": "采购合同",
-        "address": "B23"
+        "address": "B19"
       },
-      "id": "45d3a5c4-ab51-42ee-ae0a-8ece83d930b2"
+      "id": "342e38dd-b48e-497e-92e8-f61739a44175"
+    },
+    {
+      "name": "filledAt",
+      "type": "display",
+      "label": "填写日",
+      "anchor": {
+        "kind": "cell",
+        "sheet": "采购合同",
+        "address": "B20"
+      },
+      "id": "1a43bc3a-a024-4056-a26a-9c4b05d217ce"
     }
   ]
 }

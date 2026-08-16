@@ -5,6 +5,7 @@ import DefinitionPanel from '@shared/DefinitionPanel.vue'
 import DocxLayout from '@shared/DocxLayout.vue'
 import XlsxDocument from '@shared/XlsxDocument.vue'
 import { downloadBuffer, useContract } from '@shared/use-contract'
+import { templateUrl } from '@shared/asset-url'
 import NativeField from './NativeField.vue'
 import { nativeFieldMounter } from './native-field'
 
@@ -32,6 +33,11 @@ const toast = ref<{ text: string; error?: boolean } | null>(null)
 const exportingPdf = ref(false)
 /** 外部决定 PDF 方案，默认 html2canvas */
 const pdfMode = ref<PdfExportMode>('html2canvas')
+
+const templateDocx = templateUrl('采购合同.docx')
+const templateXlsx = templateUrl('采购合同.xlsx')
+const templateDef = templateUrl('采购合同.docx.definition.json')
+const templateDefAlt = templateUrl('采购合同.docx.definition.alt.json')
 
 function showToast(text: string, error = false) {
   toast.value = { text, error }
@@ -176,10 +182,10 @@ async function onExportPdf() {
           换成原生控件。打开后可在右侧切换 / 编辑 definition。
         </p>
         <div class="start-actions">
-          <a class="start-link" href="/templates/采购合同.docx" download>下载 Word</a>
-          <a class="start-link" href="/templates/采购合同.xlsx" download>下载 Excel</a>
-          <a class="start-link" href="/templates/采购合同.docx.definition.json" download>默认 definition</a>
-          <a class="start-link" href="/templates/采购合同.docx.definition.alt.json" download>alt definition</a>
+          <a class="start-link" :href="templateDocx" download>下载 Word</a>
+          <a class="start-link" :href="templateXlsx" download>下载 Excel</a>
+          <a class="start-link" :href="templateDef" download>默认 definition</a>
+          <a class="start-link" :href="templateDefAlt" download>alt definition</a>
           <button class="btn btn-primary" type="button" :disabled="loading" @click="onOpenPublished('docx')">
             打开 Word 合同
           </button>

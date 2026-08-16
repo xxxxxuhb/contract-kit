@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, watch } from 'vue'
 import { renderAsync } from 'docx-preview'
-import { splitByMarkers } from '@contract-kit/kernel'
+import { parseTableColumnRef, splitByMarkers } from '@contract-kit/kernel'
 import type { FormSchemaField, ValidationResult } from '@contract-kit/kernel'
 import type { FieldHandle, FieldMounter } from './field-types'
+import { resolveFieldSlot } from './resolve-field'
 
 const props = defineProps<{
   buffer: Uint8Array
@@ -24,14 +25,18 @@ function setHost(el: Element | null) {
   host.value = el as HTMLElement | null
 }
 
+function cellPath(table: string, index: number, column: string) {
+  return `${table}.${index}.${column}`
+}
+
 function mountSlot(holder: HTMLElement, name: string) {
   handles.get(holder)?.destroy()
-  const field = props.fields.find((item) => item.name === name)
-  const error = props.validation.issues.find((issue) => issue.path === name)?.message
+  const resolved = resolveFieldSlot(name, props.fields, props.validation)
   const handle = props.mountField(holder, {
     name,
-    field,
-    error,
+    field: resolved.field,
+    value: resolved.value,
+    error: resolved.error,
     onChange: (value) => emit('setValue', name, value),
   })
   handles.set(holder, handle)
@@ -42,13 +47,12 @@ function refreshSlots() {
     const name = holder.dataset.field
     if (!name) continue
     const existing = handles.get(holder)
+    const resolved = resolveFieldSlot(name, props.fields, props.validation)
     if (!existing) {
       mountSlot(holder, name)
       continue
     }
-    const field = props.fields.find((item) => item.name === name)
-    const error = props.validation.issues.find((issue) => issue.path === name)?.message
-    existing.update({ field, value: field?.value, error })
+    existing.update({ field: resolved.field, value: resolved.value, error: resolved.error })
   }
 }
 
@@ -58,8 +62,61 @@ function clearSlots() {
   slots.length = 0
 }
 
+function rewriteTableMarkersInRow(row: Element, tableName: string, index: number) {
+  const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT)
+  const nodes: Text[] = []
+  let node = walker.nextNode()
+  while (node) {
+    nodes.push(node as Text)
+    node = walker.nextNode()
+  }
+  const prefix = `${tableName}.`
+  for (const textNode of nodes) {
+    const text = textNode.textContent ?? ''
+    if (!text.includes('{{')) continue
+    textNode.textContent = text.replace(
+      /\{\{\s*([^\s:{}]+)(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)?\s*\}\}/g,
+      (raw, markerName: string) => {
+        if (!markerName.startsWith(prefix)) return raw
+        const column = markerName.slice(prefix.length)
+        if (column === '$index') return String(index + 1)
+        return `{{${cellPath(tableName, index, column)}}}`
+      },
+    )
+  }
+}
+
+function tableRows(field: FormSchemaField): Record<string, unknown>[] {
+  return Array.isArray(field.value) ? (field.value as Record<string, unknown>[]) : []
+}
+
+function expandRepeatingRows(root: HTMLElement) {
+  for (const field of props.fields) {
+    if (field.type !== 'table') continue
+    const rows = tableRows(field)
+    const candidates = Array.from(root.querySelectorAll('tr')).filter((tr) =>
+      (tr.textContent ?? '').includes(`{{${field.name}.`),
+    )
+    for (const template of candidates) {
+      const parent = template.parentElement
+      if (!parent) continue
+      const fragment = document.createDocumentFragment()
+      for (let i = 0; i < rows.length; i++) {
+        const clone = template.cloneNode(true) as HTMLElement
+        rewriteTableMarkersInRow(clone, field.name, i)
+        clone.dataset.ckTable = field.name
+        clone.dataset.ckRow = String(i)
+        fragment.appendChild(clone)
+      }
+      parent.insertBefore(fragment, template)
+      template.remove()
+    }
+  }
+}
+
 function hydrate(root: HTMLElement) {
   clearSlots()
+  expandRepeatingRows(root)
 
   const parents = new Set<Element>()
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
@@ -84,6 +141,16 @@ function hydrate(root: HTMLElement) {
     const text = parent.textContent ?? ''
     const segments = splitByMarkers(text)
     if (!segments.some((segment) => segment.kind === 'field')) continue
+    if (
+      segments.some(
+        (segment) =>
+          segment.kind === 'field' &&
+          Boolean(parseTableColumnRef(segment.name)) &&
+          !/^[^.]+\.\d+\.[^.]+$/.test(segment.name),
+      )
+    ) {
+      continue
+    }
     parent.textContent = ''
     for (const segment of segments) {
       if (segment.kind === 'text') {
@@ -117,6 +184,13 @@ async function paint() {
   hydrate(el)
 }
 
+function tableSignature() {
+  return props.fields
+    .filter((field) => field.type === 'table')
+    .map((field) => `${field.name}:${Array.isArray(field.value) ? field.value.length : 0}`)
+    .join('|')
+}
+
 watch(
   () => props.buffer,
   () => {
@@ -124,6 +198,10 @@ watch(
   },
   { immediate: true },
 )
+
+watch(tableSignature, () => {
+  void nextTick(() => void paint())
+})
 
 watch(() => [props.fields, props.validation, props.mountField], refreshSlots, { deep: true })
 

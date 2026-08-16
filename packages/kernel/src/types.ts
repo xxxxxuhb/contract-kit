@@ -7,6 +7,8 @@ export type FieldType =
   | 'multiselect'
   | 'table'
   | 'image'
+  /** 纯展示：data 仍动态写入/导出，预览不渲染输入框 */
+  | 'display'
 
 export type DocxAnchor =
   | { kind: 'bookmark'; name: string }
@@ -33,6 +35,15 @@ export interface FieldOption {
   label: string
 }
 
+/** Column of a `table` field (`{{items.name}}` → column `name`) */
+export interface FieldColumn {
+  name: string
+  type: FieldType
+  label?: string
+  required?: boolean
+  options?: FieldOption[]
+}
+
 export interface Field {
   id: string
   name: string
@@ -40,6 +51,8 @@ export interface Field {
   label?: string
   required?: boolean
   options?: FieldOption[]
+  /** Present when type === 'table' */
+  columns?: FieldColumn[]
   anchor: Anchor
 }
 
@@ -79,6 +92,7 @@ export interface FormSchemaField {
   label: string
   required: boolean
   options?: FieldOption[]
+  columns?: FieldColumn[]
   value: unknown
 }
 
