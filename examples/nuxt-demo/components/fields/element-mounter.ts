@@ -1,6 +1,6 @@
 import { createVNode, defineComponent, h, provide, render, type AppContext } from 'vue'
 import { formContextKey, type FormContext } from 'element-plus'
-import type { FormSchemaField } from 'contract-kit'
+import type { FormSchemaField } from 'paperfill'
 import type { FieldHandle, FieldMounter } from '~/utils/field-types'
 import ElementField from './ElementField.vue'
 

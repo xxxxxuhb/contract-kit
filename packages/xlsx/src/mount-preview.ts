@@ -7,7 +7,7 @@ import {
   type XlsxPreviewCell,
   type XlsxPreviewCellStyle,
   type XlsxPreviewSheet,
-} from '@contract-kit/kernel'
+} from '@paperfill/kernel'
 
 export type XlsxFieldMountContext = {
   name: string

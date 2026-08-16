@@ -1,4 +1,4 @@
-# contract-kit 架构
+# paperfill 架构
 
 面向接入方的公共 API 清单见 [api.md](./api.md)。
 
@@ -21,9 +21,9 @@
 ## 包结构
 
 ```text
-contract-kit/
+paperfill/
   packages/
-    contract-kit   # 伞包：默认 re-export kernel（子路径见各自 package）
+    paperfill   # 伞包：默认 re-export kernel（子路径见各自 package）
     kernel         # 状态机：Command / State / Schema / View / Preview 缓存
     docx           # Word adapter：扫 {{marker}}、bind、export、getPreview、mountDocxPreview
     xlsx           # Excel adapter：单元格标记、合并预览、bind、export、mountXlsxPreview
@@ -55,17 +55,17 @@ flowchart TB
   subgraph Page["接入方页面 / examples"]
     Shell["壳：打开 / hydrate / 导出"]
     DocxHost["Word：mountDocxPreview + FieldMounter"]
-    FieldUI["字段 UI：@contract-kit/ui<br/>或自绘 Element/自有组件"]
+    FieldUI["字段 UI：@paperfill/ui<br/>或自绘 Element/自有组件"]
   end
 
   subgraph Core["运行时"]
-    Kernel["@contract-kit/kernel<br/>dispatch / get* / subscribe"]
+    Kernel["@paperfill/kernel<br/>dispatch / get* / subscribe"]
     Docx["DocxAdapter + mountDocxPreview"]
     Xlsx["XlsxAdapter + mountXlsxPreview"]
   end
 
   subgraph Optional["可选"]
-    Pdf["@contract-kit/pdf<br/>exportFilledDocument"]
+    Pdf["@paperfill/pdf<br/>exportFilledDocument"]
   end
 
   Shell -->|Command| Kernel
@@ -79,7 +79,7 @@ flowchart TB
   Xlsx --> XLSX[".xlsx / ExcelJS"]
 ```
 
-**字段 UI 与布局解耦：** Word 用 `mountDocxPreview` 渲原文件并挂槽位；Excel 用 `mountXlsxPreview` 渲表格（含背景/字体色）。接入方只向槽位 `mount` 控件。以上 API 均从 `contract-kit` 导入。
+**字段 UI 与布局解耦：** Word 用 `mountDocxPreview` 渲原文件并挂槽位；Excel 用 `mountXlsxPreview` 渲表格（含背景/字体色）。接入方只向槽位 `mount` 控件。以上 API 均从 `paperfill` 导入。
 
 **字段 UI 与 kernel 解耦：** kernel 只产出 `FormSchema`；谁往槽位里 `mount` 控件由接入方决定。`ui` 是默认实现，不是必选。
 
@@ -211,7 +211,7 @@ sequenceDiagram
   participant Page as 页面
   participant K as Kernel
   participant A as Adapter
-  participant Pdf as @contract-kit/pdf
+  participant Pdf as @paperfill/pdf
 
   User->>Page: 导出文件
   Page->>K: dispatch({ type: 'export' })
@@ -263,7 +263,7 @@ sequenceDiagram
 
 | 目录 / 路径 | 说明 |
 |-------------|------|
-| `examples/nuxt-demo` `/` | 只依赖 `contract-kit`；原生 UI；「校验」→ `kernel.validate()` |
+| `examples/nuxt-demo` `/` | 只依赖 `paperfill`；原生 UI；「校验」→ `kernel.validate()` |
 | `examples/nuxt-demo` `/custom` | Element Plus；「校验」→ `el-form` rules |
 | `examples/templates` | Word / Excel 全类型模板 |
 | `examples/mock` | Nitro API 共用数据 |
@@ -290,7 +290,7 @@ sequenceDiagram
 - [x] **锚点写回文档**：`insertField` 在 Word 文末 / Excel 新行写入 `{{name}}`；`updateField` 改标记；`removeField` 删标记。
 - [x] **预览与导出一致**：填写页（原文件+槽位）与 `export`（文本替换+扩行+嵌图）对齐；未填扁平标记导出清空；空表两边各留一行占位。版式仍受 docx-preview / ExcelJS 第三方上限约束。
 - [x] **表格行 API**：`insertRow` / `removeRow`；空表预览/导出保留一行空白占位（UI 仍可由业务做）。
-- [x] **接入面**：`@contract-kit/vue` / `react` 的 `useContractKit`；`toPersistBundle` / `hydrateFromBundle` / `snapshotKernel`；SSR 边界见 api.md；umbrella 子路径 + [CHANGELOG](../CHANGELOG.md)。
+- [x] **接入面**：`@paperfill/vue` / `react` 的 `useContractKit`；`toPersistBundle` / `hydrateFromBundle` / `snapshotKernel`；SSR 边界见 api.md；umbrella 子路径 + [CHANGELOG](../CHANGELOG.md)。
 
 已完成：
 

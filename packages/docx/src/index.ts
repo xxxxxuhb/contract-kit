@@ -6,7 +6,7 @@ import {
   type Field,
   type PreviewModel,
   type Source,
-} from '@contract-kit/kernel'
+} from '@paperfill/kernel'
 import JSZip from 'jszip'
 import { buildDocxPreview } from './preview'
 import {

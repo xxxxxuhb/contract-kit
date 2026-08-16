@@ -11,7 +11,7 @@ export function officeMime(format: 'docx' | 'xlsx') {
 }
 
 export async function downloadFilledPdf(title: string, kind: 'docx' | 'xlsx', buffer: Uint8Array) {
-  const { exportFilledDocument } = await import('contract-kit')
+  const { exportFilledDocument } = await import('paperfill')
   const pdf = await exportFilledDocument({
     kind,
     buffer,

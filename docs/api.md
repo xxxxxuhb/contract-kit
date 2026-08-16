@@ -1,22 +1,22 @@
-# contract-kit 接口文档
+# paperfill 接口文档
 
 面向接入方的公共 API。实现细节与时序见 [architecture.md](./architecture.md)。
 
 ## 安装与入口
 
 ```bash
-npm i contract-kit
+npm i paperfill
 ```
 
 | 导入路径 | 内容 |
 |----------|------|
-| `contract-kit` | **全部 API**：`createKernel`、`DocxAdapter` / `mountDocxPreview`、`XlsxAdapter` / `mountXlsxPreview`、`nativeFieldMounter`、`exportFilledDocument`、类型与 persist |
-| `contract-kit/ui/style.css` | 原生字段样式 |
-| `contract-kit/xlsx/style.css` | Excel 预览表格骨架样式 |
-| `contract-kit/vue` | `useContractKit`（需 Vue 3 peer） |
-| `contract-kit/react` | `useContractKit`（需 React ≥18 peer） |
+| `paperfill` | **全部 API**：`createKernel`、`DocxAdapter` / `mountDocxPreview`、`XlsxAdapter` / `mountXlsxPreview`、`nativeFieldMounter`、`exportFilledDocument`、类型与 persist |
+| `paperfill/ui/style.css` | 原生字段样式 |
+| `paperfill/xlsx/style.css` | Excel 预览表格骨架样式 |
+| `paperfill/vue` | `useContractKit`（需 Vue 3 peer） |
+| `paperfill/react` | `useContractKit`（需 React ≥18 peer） |
 
-接入方只装 `contract-kit`，业务代码只从 `contract-kit` 取 API。仓库内 `@contract-kit/*` 是实现拆包，不必再单独安装。子路径仅用于 **CSS** 和 **Vue/React 封装**。
+接入方只装 `paperfill`，业务代码只从 `paperfill` 取 API。仓库内 `@paperfill/*` 是实现拆包，不必再单独安装。子路径仅用于 **CSS** 和 **Vue/React 封装**。
 
 ---
 
@@ -80,7 +80,7 @@ await kernel.dispatch({ type: 'removeRow', table: 'items', index: 0 })
 
 导出 / 预览按数组长度克隆模板行；**空表保留一行空白占位**（不删行模板），便于继续填。校验：`table.required` → 非空数组；列 `required` → `items.i.col`。
 
-辅助函数（`contract-kit`）：
+辅助函数（`paperfill`）：
 
 | 函数 | 说明 |
 |------|------|
@@ -191,7 +191,7 @@ interface FormSchema {
 ## Kernel
 
 ```ts
-import { createKernel, DocxAdapter } from 'contract-kit'
+import { createKernel, DocxAdapter } from 'paperfill'
 
 const kernel = createKernel({ adapter: new DocxAdapter() })
 ```
@@ -284,13 +284,13 @@ interface DocumentAdapter {
 
 | 类 / API | 导入 | 说明 |
 |----------|------|------|
-| `DocxAdapter` | `contract-kit` | OOXML / JSZip；按 `{{marker}}` bind |
-| `mountDocxPreview` | `contract-kit` | 用 `docx-preview` 渲原 buffer，扫 `{{marker}}` 挂槽位；业务只注入 `mountField` |
-| `XlsxAdapter` | `contract-kit` | ExcelJS；单元格文本中的标记；`getPreview` 含 `style`（背景/字体色等） |
-| `mountXlsxPreview` | `contract-kit` | 把 `getPreview()` 的 sheets 渲成表格 DOM，业务只注入 `mountField` |
+| `DocxAdapter` | `paperfill` | OOXML / JSZip；按 `{{marker}}` bind |
+| `mountDocxPreview` | `paperfill` | 用 `docx-preview` 渲原 buffer，扫 `{{marker}}` 挂槽位；业务只注入 `mountField` |
+| `XlsxAdapter` | `paperfill` | ExcelJS；单元格文本中的标记；`getPreview` 含 `style`（背景/字体色等） |
+| `mountXlsxPreview` | `paperfill` | 把 `getPreview()` 的 sheets 渲成表格 DOM，业务只注入 `mountField` |
 
 ```ts
-import { mountDocxPreview } from 'contract-kit'
+import { mountDocxPreview } from 'paperfill'
 
 const handle = mountDocxPreview(container, {
   buffer: source.buffer,
@@ -302,8 +302,8 @@ const handle = mountDocxPreview(container, {
 ```
 
 ```ts
-import { XlsxAdapter, mountXlsxPreview } from 'contract-kit'
-import 'contract-kit/xlsx/style.css'
+import { XlsxAdapter, mountXlsxPreview } from 'paperfill'
+import 'paperfill/xlsx/style.css'
 
 const preview = kernel.getPreview()
 if (preview?.kind === 'xlsx') {
@@ -327,8 +327,8 @@ if (preview?.kind === 'xlsx') {
 框架无关原生控件。
 
 ```ts
-import { createField, mountField } from 'contract-kit'
-import 'contract-kit/ui/style.css'
+import { createField, mountField } from 'paperfill'
+import 'paperfill/ui/style.css'
 
 const handle = mountField(slotEl, {
   name: 'partyA',
@@ -359,7 +359,7 @@ handle.destroy()
 对 **已 `export` 的文件** 再转 PDF（不是截填写页表单 DOM）。
 
 ```ts
-import { exportFilledDocument, supportsCanvasDrawElement } from 'contract-kit'
+import { exportFilledDocument, supportsCanvasDrawElement } from 'paperfill'
 
 const filled = await kernel.dispatch({ type: 'export' })
 if (filled.type !== 'exported') throw new Error('export failed')
@@ -420,7 +420,7 @@ interface ExportPdfOptions {
 | `data` | `kernel.getData()` |
 
 ```ts
-import { hydrateFromBundle, toPersistBundle } from 'contract-kit'
+import { hydrateFromBundle, toPersistBundle } from 'paperfill'
 
 const bundle = toPersistBundle(kernel)
 if (bundle) await save(bundle)
@@ -437,21 +437,21 @@ await kernel.dispatch(hydrateFromBundle(bundle))
 薄封装，只订阅 kernel；文档布局仍走 `mountDocxPreview` / `mountXlsxPreview`。
 
 ```ts
-import { useContractKit } from 'contract-kit/vue'
-// import { useContractKit } from 'contract-kit/react'
+import { useContractKit } from 'paperfill/vue'
+// import { useContractKit } from 'paperfill/react'
 
 const { schema, data, validation, preview } = useContractKit(kernel)
 ```
 
-等价子包：`@contract-kit/vue`、`@contract-kit/react`（peer：Vue 3 / React ≥18）。
+等价子包：`@paperfill/vue`、`@paperfill/react`（peer：Vue 3 / React ≥18）。
 
 ### SSR 边界
 
 | 可在服务端 | 仅浏览器（`ClientOnly` / `useEffect` 后） |
 |------------|------------------------------------------|
 | `createKernel` / `dispatch` / `hydrate` / `validate` / `export` | `mountDocxPreview` / `mountXlsxPreview` |
-| `toPersistBundle` / `snapshotKernel` | `@contract-kit/ui` 的 `mountField` |
-| 读 `definition` / `data` | `@contract-kit/pdf` |
+| `toPersistBundle` / `snapshotKernel` | `@paperfill/ui` 的 `mountField` |
+| 读 `definition` / `data` | `@paperfill/pdf` |
 
 Nuxt 示例用 `<ClientOnly>` 包文档宿主。
 
@@ -503,7 +503,7 @@ save({
 
 | 路径 | 字段 UI | 校验 |
 |------|---------|------|
-| `/` | `@contract-kit/ui` | 「校验」→ `kernel.validate()` |
+| `/` | `@paperfill/ui` | 「校验」→ `kernel.validate()` |
 | `/custom` | Element Plus 自绘 | 「校验」→ `el-form` rules（页面实现） |
 
 API（Nitro）：

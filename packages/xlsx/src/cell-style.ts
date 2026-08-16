@@ -1,4 +1,4 @@
-import type { XlsxPreviewCellStyle } from '@contract-kit/kernel'
+import type { XlsxPreviewCellStyle } from '@paperfill/kernel'
 import type ExcelJS from 'exceljs'
 
 /** Default Office theme accents → approximate sRGB (theme index only, no tint). */

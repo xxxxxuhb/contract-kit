@@ -1,4 +1,4 @@
-# contract-kit
+# paperfill
 
 **[中文](./README.md)** | English
 
@@ -65,7 +65,7 @@ The demo backend: `GET /api/contracts`, `/:id` (definition + data), `/:id/file` 
 ### Frontend (preview + fill + export)
 
 ```ts
-import { createKernel, DocxAdapter, XlsxAdapter, mountDocxPreview, nativeFieldMounter } from 'contract-kit'
+import { createKernel, DocxAdapter, XlsxAdapter, mountDocxPreview, nativeFieldMounter } from 'paperfill'
 
 const kernel = createKernel({
   adapter: detail.kind === 'docx' ? new DocxAdapter() : new XlsxAdapter(),
@@ -109,10 +109,10 @@ npm run example     # http://localhost:5210
 ## Install
 
 ```bash
-npm i contract-kit
+npm i paperfill
 ```
 
-One package. **All APIs come from `contract-kit`:**
+One package. **All APIs come from `paperfill`:**
 
 ```ts
 import {
@@ -123,12 +123,12 @@ import {
   mountXlsxPreview,
   nativeFieldMounter,
   exportFilledDocument,
-} from 'contract-kit'
-import 'contract-kit/ui/style.css'
-import 'contract-kit/xlsx/style.css'
+} from 'paperfill'
+import 'paperfill/ui/style.css'
+import 'paperfill/xlsx/style.css'
 ```
 
-Styles stay on subpaths. Vue / React helpers use `contract-kit/vue` or `contract-kit/react` because of framework peers.
+Styles stay on subpaths. Vue / React helpers use `paperfill/vue` or `paperfill/react` because of framework peers.
 
 ## Limitations & environment
 

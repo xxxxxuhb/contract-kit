@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, watch } from 'vue'
-import { mountDocxPreview, type DocxPreviewHandle, type FormSchemaField, type ValidationResult } from 'contract-kit'
+import { mountDocxPreview, type DocxPreviewHandle, type FormSchemaField, type ValidationResult } from 'paperfill'
 import type { FieldMounter } from '~/utils/field-types'
 
 const props = defineProps<{

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, watch } from 'vue'
-import { mountField, type FieldHandle, type FormSchemaField, type ValidationResult } from 'contract-kit'
+import { mountField, type FieldHandle, type FormSchemaField, type ValidationResult } from 'paperfill'
 import { resolveFieldSlot } from '~/utils/resolve-field'
 
 const props = defineProps<{

@@ -4,7 +4,7 @@ import {
   rowsForExpand,
   tableNamesInText,
   textHasTableMarkers,
-} from '@contract-kit/kernel'
+} from '@paperfill/kernel'
 
 const PARAGRAPH_RE = /<w:p\b[\s\S]*?<\/w:p>/g
 const TEXT_RE = /<w:t\b([^>]*)>([\s\S]*?)<\/w:t>/g

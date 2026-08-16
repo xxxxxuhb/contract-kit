@@ -6,7 +6,7 @@ import {
   type ValidationResult,
   type XlsxPreviewHandle,
   type XlsxPreviewSheet,
-} from 'contract-kit'
+} from 'paperfill'
 import type { FieldMounter } from '~/utils/field-types'
 
 const props = defineProps<{

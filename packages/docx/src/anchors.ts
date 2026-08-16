@@ -1,4 +1,4 @@
-import type { Field } from '@contract-kit/kernel'
+import type { Field } from '@paperfill/kernel'
 
 function markerText(field: Field) {
   return field.type === 'text' ? `{{${field.name}}}` : `{{${field.name}:${field.type}}}`

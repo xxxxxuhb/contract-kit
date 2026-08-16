@@ -1,4 +1,4 @@
-import type { FieldOption, FieldType, FormSchemaField } from '@contract-kit/kernel'
+import type { FieldOption, FieldType, FormSchemaField } from '@paperfill/kernel'
 
 export type FieldModel = Pick<FormSchemaField, 'name' | 'type' | 'label' | 'options' | 'value'> & {
   required?: boolean

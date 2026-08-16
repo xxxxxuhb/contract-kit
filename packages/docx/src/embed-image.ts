@@ -1,4 +1,4 @@
-import { parseDataUrl, parseMarkers, type Field } from '@contract-kit/kernel'
+import { parseDataUrl, parseMarkers, type Field } from '@paperfill/kernel'
 
 const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 const R_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'

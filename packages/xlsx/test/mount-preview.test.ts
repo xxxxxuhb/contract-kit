@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { JSDOM } from 'jsdom'
-import type { FormSchemaField, XlsxPreviewSheet } from '@contract-kit/kernel'
+import type { FormSchemaField, XlsxPreviewSheet } from '@paperfill/kernel'
 import { expandXlsxSheets, mountXlsxPreview } from '../src/mount-preview'
 
 function withDom<T>(run: () => T): T {

@@ -8,7 +8,7 @@ import {
   type PreviewModel,
   type TemplateDefinition,
   type ValidationResult,
-} from 'contract-kit'
+} from 'paperfill'
 
 export type ContractSummary = {
   id: string

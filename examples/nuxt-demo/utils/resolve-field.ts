@@ -1,4 +1,4 @@
-import type { FormSchemaField, ValidationResult } from 'contract-kit'
+import type { FormSchemaField, ValidationResult } from 'paperfill'
 
 export function resolveFieldSlot(
   name: string,

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { JSDOM } from 'jsdom'
-import type { FormSchemaField } from '@contract-kit/kernel'
+import type { FormSchemaField } from '@paperfill/kernel'
 import {
   expandRepeatingRows,
   resolveDocxSlot,

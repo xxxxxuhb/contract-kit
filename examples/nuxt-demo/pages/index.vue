@@ -88,9 +88,9 @@ function onClose() {
   <div class="page">
     <header class="header">
       <div>
-        <h1>contract-kit · Nuxt · 原生 UI</h1>
+        <h1>paperfill · Nuxt · 原生 UI</h1>
         <p>
-          contract-kit · 校验 = kernel.validate() ·
+          paperfill · 校验 = kernel.validate() ·
           <NuxtLink to="/custom">自定义 UI（Element Plus）→</NuxtLink>
         </p>
       </div>

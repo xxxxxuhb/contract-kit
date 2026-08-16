@@ -1,4 +1,4 @@
-import type { FormSchemaField, ValidationResult } from 'contract-kit'
+import type { FormSchemaField, ValidationResult } from 'paperfill'
 
 export type FieldMountContext = {
   name: string

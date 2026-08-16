@@ -4,7 +4,7 @@ import {
   splitByMarkers,
   type FormSchemaField,
   type ValidationResult,
-} from '@contract-kit/kernel'
+} from '@paperfill/kernel'
 import { renderAsync } from 'docx-preview'
 
 export type DocxFieldMountContext = {

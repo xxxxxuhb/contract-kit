@@ -1,5 +1,5 @@
 {
-  "name": "@contract-kit/pdf",
+  "name": "@paperfill/pdf",
   "version": "0.1.0",
   "description": "Export filled docx/xlsx to PDF (html2canvas | canvas-draw-element | print)",
   "main": "./dist/index.js",
@@ -10,6 +10,10 @@
       "require": "./dist/index.js",
       "default": "./dist/index.js"
     }
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
   },
   "files": [
     "dist"

@@ -1,7 +1,7 @@
 {
-  "name": "@contract-kit/react",
+  "name": "@paperfill/react",
   "version": "0.1.0",
-  "description": "React helpers for contract-kit",
+  "description": "React helpers for paperfill",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -10,6 +10,10 @@
       "require": "./dist/index.js",
       "default": "./dist/index.js"
     }
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
   },
   "files": [
     "dist"
@@ -22,7 +26,7 @@
     "react": ">=18"
   },
   "dependencies": {
-    "@contract-kit/kernel": "0.1.0"
+    "@paperfill/kernel": "0.1.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",

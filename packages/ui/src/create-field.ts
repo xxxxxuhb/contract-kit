@@ -1,4 +1,4 @@
-import type { FieldType } from '@contract-kit/kernel'
+import type { FieldType } from '@paperfill/kernel'
 import type { CreateFieldOptions, FieldHandle, FieldModel } from './types'
 
 function asString(value: unknown): string {

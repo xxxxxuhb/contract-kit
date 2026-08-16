@@ -1,10 +1,10 @@
-# contract-kit
+# paperfill
 
 **中文** | [English](./README.en.md)
 
 **在 Word / Excel 原文排版上填写合同，而不是另开一张表再生成文档。**
 
-`contract-kit` 是一套 **headless** 合同模板运行时：内核只管字段定义、填写数据与导出；页面自己决定预览和输入框长什么样。库**不做**账号、OSS、审批、合同系统。
+`paperfill` 是一套 **headless** 合同模板运行时：内核只管字段定义、填写数据与导出；页面自己决定预览和输入框长什么样。库**不做**账号、OSS、审批、合同系统。
 
 ## 使用场景
 
@@ -68,7 +68,7 @@ await db.saveTemplate({
 ### 前端（预览 + 填写 + 导出）
 
 ```ts
-import { createKernel, DocxAdapter, XlsxAdapter, mountDocxPreview, nativeFieldMounter } from 'contract-kit'
+import { createKernel, DocxAdapter, XlsxAdapter, mountDocxPreview, nativeFieldMounter } from 'paperfill'
 
 const kernel = createKernel({
   adapter: detail.kind === 'docx' ? new DocxAdapter() : new XlsxAdapter(),
@@ -120,10 +120,10 @@ npm run example          # http://localhost:5210
 ## 安装
 
 ```bash
-npm i contract-kit
+npm i paperfill
 ```
 
-只装这一个包，**API 都从 `contract-kit` 取**（Word / Excel / 原生控件 / PDF 都在同一入口）：
+只装这一个包，**API 都从 `paperfill` 取**（Word / Excel / 原生控件 / PDF 都在同一入口）：
 
 ```ts
 import {
@@ -134,12 +134,12 @@ import {
   mountXlsxPreview,
   nativeFieldMounter,
   exportFilledDocument,
-} from 'contract-kit'
-import 'contract-kit/ui/style.css'
-import 'contract-kit/xlsx/style.css'
+} from 'paperfill'
+import 'paperfill/ui/style.css'
+import 'paperfill/xlsx/style.css'
 ```
 
-样式仍走子路径。Vue / React 订阅因框架 peer 不同，用 `contract-kit/vue` 或 `contract-kit/react`。
+样式仍走子路径。Vue / React 订阅因框架 peer 不同，用 `paperfill/vue` 或 `paperfill/react`。
 
 文档：[docs/architecture.md](./docs/architecture.md) · [docs/api.md](./docs/api.md)
 

@@ -1,8 +1,11 @@
 {
-  "name": "contract-kit",
+  "name": "paperfill",
   "version": "0.1.0",
   "description": "Contract template runtime: kernel + docx/xlsx adapters + framework-free field UI",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -52,13 +55,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@contract-kit/docx": "0.1.0",
-    "@contract-kit/kernel": "0.1.0",
-    "@contract-kit/pdf": "0.1.0",
-    "@contract-kit/react": "0.1.0",
-    "@contract-kit/ui": "0.1.0",
-    "@contract-kit/vue": "0.1.0",
-    "@contract-kit/xlsx": "0.1.0"
+    "@paperfill/docx": "0.1.0",
+    "@paperfill/kernel": "0.1.0",
+    "@paperfill/pdf": "0.1.0",
+    "@paperfill/react": "0.1.0",
+    "@paperfill/ui": "0.1.0",
+    "@paperfill/vue": "0.1.0",
+    "@paperfill/xlsx": "0.1.0"
   },
   "devDependencies": {
     "typescript": "^5.8.2"

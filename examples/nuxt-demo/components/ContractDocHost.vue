@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { getCurrentInstance, inject } from 'vue'
 import { formContextKey, type FormContext } from 'element-plus'
-import type { FormSchemaField, ValidationResult, XlsxPreviewSheet } from 'contract-kit'
+import type { FormSchemaField, ValidationResult, XlsxPreviewSheet } from 'paperfill'
 import { createElementFieldMounter } from '~/components/fields/element-mounter'
 import DocxLayout from '~/components/DocxLayout.vue'
 import XlsxDocument from '~/components/XlsxDocument.vue'

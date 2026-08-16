@@ -110,7 +110,7 @@ function onClose() {
   <div class="page">
     <header class="header">
       <div>
-        <h1>contract-kit · Nuxt · 自定义 UI</h1>
+        <h1>paperfill · Nuxt · 自定义 UI</h1>
         <p>
           合同外包 el-form，字段内 el-form-item ·
           <NuxtLink to="/">原生 UI →</NuxtLink>

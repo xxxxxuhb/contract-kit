@@ -1,4 +1,4 @@
-import { splitByMarkers, type PreviewBlock, type PreviewInline, type PreviewParagraph, type PreviewTable } from '@contract-kit/kernel'
+import { splitByMarkers, type PreviewBlock, type PreviewInline, type PreviewParagraph, type PreviewTable } from '@paperfill/kernel'
 import { joinTextNodes } from './xml'
 
 function isTagStart(xml: string, at: number, tag: string): boolean {

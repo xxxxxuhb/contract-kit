@@ -116,7 +116,7 @@ async function mountFilled(input: FilledExportInput, host: HTMLElement): Promise
 /** 系统打印 →「另存为 PDF」 */
 export async function printFilledDocument(input: FilledExportInput): Promise<void> {
   const iframe = document.createElement('iframe')
-  iframe.setAttribute('title', 'contract-kit-pdf-print')
+  iframe.setAttribute('title', 'paperfill-pdf-print')
   // 不可用 opacity:0：部分浏览器会把不可见 iframe 打成空白预览
   iframe.style.cssText =
     'position:fixed;left:0;top:0;width:210mm;height:100vh;border:0;opacity:1;pointer-events:none;z-index:-1;'

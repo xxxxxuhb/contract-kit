@@ -1,7 +1,7 @@
 {
-  "name": "@contract-kit/xlsx",
+  "name": "@paperfill/xlsx",
   "version": "0.1.0",
-  "description": "Excel (.xlsx) adapter and preview layout for contract-kit",
+  "description": "Excel (.xlsx) adapter and preview layout for paperfill",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -12,6 +12,10 @@
     },
     "./style.css": "./dist/style.css"
   },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "dist"
   ],
@@ -20,7 +24,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@contract-kit/kernel": "0.1.0",
+    "@paperfill/kernel": "0.1.0",
     "exceljs": "^4.4.0"
   },
   "devDependencies": {

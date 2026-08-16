@@ -14,7 +14,7 @@ import {
   type Field,
   type PreviewModel,
   type Source,
-} from '@contract-kit/kernel'
+} from '@paperfill/kernel'
 import ExcelJS from 'exceljs'
 import { readCellStyle } from './cell-style'
 

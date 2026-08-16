@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { snapshotKernel, type Kernel, type KernelSnapshot } from '@contract-kit/kernel'
+import { snapshotKernel, type Kernel, type KernelSnapshot } from '@paperfill/kernel'
 
 const empty: KernelSnapshot = {
   schema: { fields: [] },

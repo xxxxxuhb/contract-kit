@@ -7,14 +7,14 @@
 ### Added
 
 - Headless `createKernel`：`load` / `hydrate` / `setValue` / `export`，以及字段增删改。
-- `@contract-kit/docx`：`DocxAdapter`、`mountDocxPreview`、锚点写回、image 嵌图、明细表扩行。
-- `@contract-kit/xlsx`：`XlsxAdapter`、`mountXlsxPreview`、单元格颜色预览、锚点写回、image 嵌图。
-- `@contract-kit/ui`：原生 `createField` / `mountField` / `nativeFieldMounter`。
-- `@contract-kit/vue` / `@contract-kit/react`：`useContractKit` 订阅快照。
+- `@paperfill/docx`：`DocxAdapter`、`mountDocxPreview`、锚点写回、image 嵌图、明细表扩行。
+- `@paperfill/xlsx`：`XlsxAdapter`、`mountXlsxPreview`、单元格颜色预览、锚点写回、image 嵌图。
+- `@paperfill/ui`：原生 `createField` / `mountField` / `nativeFieldMounter`。
+- `@paperfill/vue` / `@paperfill/react`：`useContractKit` 订阅快照。
 - 可扩展校验：`Field.rules` + `createKernel({ validators })`。
 - 表格行：`insertRow` / `removeRow`；空表预览与导出保留一行占位。
 - Persist 约定：`toPersistBundle` / `hydrateFromBundle` / `snapshotKernel`。
-- 伞包 `contract-kit` 子路径：`/docx` `/xlsx` `/ui` `/vue` `/react` `/pdf`。
+- 伞包 `paperfill` 子路径：`/docx` `/xlsx` `/ui` `/vue` `/react` `/pdf`。
 
 ### Notes
 

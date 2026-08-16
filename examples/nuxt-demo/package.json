@@ -1,5 +1,5 @@
 {
-  "name": "@contract-kit/example-nuxt",
+  "name": "@paperfill/example-nuxt",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -10,7 +10,7 @@
     "generate": "nuxt generate"
   },
   "dependencies": {
-    "contract-kit": "0.1.0",
+    "paperfill": "0.1.0",
     "@element-plus/nuxt": "^1.1.1",
     "element-plus": "^2.9.7",
     "nuxt": "^3.16.2",

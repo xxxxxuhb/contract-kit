@@ -3,9 +3,9 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import JSZip from 'jszip'
 import ExcelJS from 'exceljs'
-import { createKernel, type FieldColumn, type TemplateDefinition } from '@contract-kit/kernel'
-import { DocxAdapter } from '@contract-kit/docx'
-import { XlsxAdapter } from '@contract-kit/xlsx'
+import { createKernel, type FieldColumn, type TemplateDefinition } from '@paperfill/kernel'
+import { DocxAdapter } from '@paperfill/docx'
+import { XlsxAdapter } from '@paperfill/xlsx'
 
 type FieldMeta = {
   label: string

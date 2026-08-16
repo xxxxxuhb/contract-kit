@@ -8,7 +8,7 @@ import {
   type Source,
   type TemplateDefinition,
   type ValidationResult,
-} from '@contract-kit/kernel'
+} from '@paperfill/kernel'
 
 const empty: KernelSnapshot = {
   schema: { fields: [] },

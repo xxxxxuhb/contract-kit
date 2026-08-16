@@ -1,5 +1,5 @@
 import type { FormRules } from 'element-plus'
-import type { Field, TemplateDefinition } from 'contract-kit'
+import type { Field, TemplateDefinition } from 'paperfill'
 
 function isEmpty(value: unknown) {
   return value === undefined || value === null || value === ''
