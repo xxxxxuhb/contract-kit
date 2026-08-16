@@ -33,7 +33,6 @@ contract-kit/
     nuxt-demo      # Nuxt：原生 / + 自定义 /custom；Nitro 模拟 API（:5210）
     mock           # 共用模拟后端数据
     templates      # 采购合同.docx / .xlsx + definition
-    site           # GitHub Pages 落地说明
 ```
 
 | 包 | 做 | 不做 |
@@ -283,4 +282,4 @@ sequenceDiagram
 
 - [ ] **image 字段嵌图**：预览侧可选文件写入 data（data URL）；docx/xlsx `bind` 真正插入图片尚未做。
 - [x] **循环明细表**：`{{items.col}}` 行模板 + `data.items[]`；docx/xlsx bind 扩行；预览按业务 data 行数渲染，行内字段可填（行数由业务 `setValue('items', rows)` 控制）。
-- [x] **Examples 部署到 GitHub**：Pages 仅落地说明；交互 demo 为 Nuxt（`npm run example`，`/` 原生 + `/custom` Element Plus）。
+- [x] **Nuxt 示例**：`npm run example`（`/` 原生 UI + `/custom` Element Plus）。

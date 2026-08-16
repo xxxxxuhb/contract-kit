@@ -9,7 +9,6 @@
     "build": "npm run build -w @contract-kit/kernel && npm run build -w @contract-kit/docx && npm run build -w @contract-kit/xlsx && npm run build -w @contract-kit/ui && npm run build -w @contract-kit/pdf && npm run build -w contract-kit",
     "typecheck": "npm run build -w @contract-kit/kernel && npm run typecheck -w @contract-kit/kernel && npm run typecheck -w @contract-kit/docx && npm run typecheck -w @contract-kit/xlsx && npm run typecheck -w @contract-kit/ui && npm run typecheck -w @contract-kit/pdf && npm run typecheck -w contract-kit",
     "test": "npm run build && tsx --test packages/kernel/test/*.test.ts packages/docx/test/*.test.ts packages/xlsx/test/*.test.ts packages/ui/test/*.test.ts",
-    "build:examples": "node scripts/build-examples-site.mjs",
     "templates": "tsx examples/templates/build.ts",
     "example": "npm run example:nuxt",
     "example:nuxt": "npm run dev -w @contract-kit/example-nuxt",
