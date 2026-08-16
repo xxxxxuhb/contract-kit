@@ -19,8 +19,13 @@ function run(command, args, env = {}) {
     cwd: root,
     env: { ...process.env, ...env },
     stdio: 'inherit',
-    shell: process.platform === 'win32',
+    // Resolve npm/npx via PATH on Actions / Windows.
+    shell: true,
   })
+  if (result.error) {
+    console.error(result.error)
+    process.exit(1)
+  }
   if (result.status !== 0) {
     process.exit(result.status ?? 1)
   }
@@ -33,12 +38,12 @@ run('npm', ['run', 'templates'])
 
 run('npm', ['run', 'build', '-w', '@contract-kit/example-native-ui'], {
   EXAMPLE_BASE: `${baseRoot}native/`,
-  EXAMPLE_OUT_DIR: join(outRoot, 'native'),
+  EXAMPLE_OUT_DIR: '../../dist-examples/native',
 })
 
 run('npm', ['run', 'build', '-w', '@contract-kit/example-custom-ui'], {
   EXAMPLE_BASE: `${baseRoot}custom/`,
-  EXAMPLE_OUT_DIR: join(outRoot, 'custom'),
+  EXAMPLE_OUT_DIR: '../../dist-examples/custom',
 })
 
 cpSync(join(root, 'examples/site/index.html'), join(outRoot, 'index.html'))
