@@ -49,6 +49,19 @@
   resize: vertical;
 }
 
+.ck-field-multiselect {
+  min-width: 10em;
+  min-height: 4.5em;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  background: #fafafa;
+}
+
+.ck-field-image {
+  min-width: 12em;
+  font-size: 12px;
+}
+
 .ck-field-display {
   display: inline;
   font: inherit;

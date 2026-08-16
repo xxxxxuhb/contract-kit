@@ -30,19 +30,20 @@ contract-kit/
     ui             # 可选：框架无关原生 createField / mountField
     pdf            # 可选（浏览器）：已填写 docx/xlsx → PDF
   examples/
-    shared         # useContract、DocxLayout（注入 FieldMounter）、XlsxDocument
-    native-ui      # @contract-kit/ui 原生字段（:5199）
-    custom-ui      # Element Plus 自绘字段（:5200）
-    templates      # 采购合同 + *.definition.json 生成脚本
+    nuxt-demo      # Nuxt：原生 / + 自定义 /custom；Nitro 模拟 API（:5210）
+    mock           # 共用模拟后端数据
+    templates      # 采购合同.docx / .xlsx + definition
+    site           # GitHub Pages 落地说明
 ```
 
 | 包 | 做 | 不做 |
 |----|----|------|
 | `kernel` | 状态、命令、校验、schema/view、缓存 preview | DOM、框架、解析 OOXML |
-| `docx` / `xlsx` | load / discoverFields / getPreview / bind / export | 存业务 data、画 UI |
-| `ui` | 原生 input/select/textarea/date | Vue/React/Element 绑定 |
+| `docx` | load / discoverFields / getPreview(blocks) / bind / export | 存业务 data、字段控件 |
+| `xlsx` | load / discoverFields / getPreview(含单元格样式) / bind / export / **`mountXlsxPreview` 表格布局** | 存业务 data、字段控件 |
+| `ui` | 原生控件（含 select / multiselect / display / image 选文件） | 绑死 Vue/React、文档排版 |
 | `pdf` | 浏览器里把**已导出文件**渲成 PDF | 服务端 Office 矢量转换、改 kernel 状态 |
-| 页面 | 上传、OSS、权限、预览排版、字段控件 | 直接改 zip/OOXML |
+| 页面 | 上传、OSS、权限、注入 FieldMounter | 直接改 zip/OOXML；自绘 Excel 表格 |
 
 ---
 
@@ -53,14 +54,13 @@ flowchart TB
   subgraph Page["接入方页面 / examples"]
     Shell["壳：打开 / hydrate / 导出"]
     DocxLayout["Word：docx-preview 原 buffer<br/>→ 扫 {{marker}} → FieldMounter"]
-    XlsxLayout["Excel：getPreview 表格<br/>→ fieldComponent"]
     FieldUI["字段 UI：@contract-kit/ui<br/>或自绘 Element/自有组件"]
   end
 
   subgraph Core["运行时"]
     Kernel["@contract-kit/kernel<br/>dispatch / get* / subscribe"]
     Docx["DocxAdapter"]
-    Xlsx["XlsxAdapter"]
+    Xlsx["XlsxAdapter + mountXlsxPreview"]
   end
 
   subgraph Optional["可选"]
@@ -69,7 +69,7 @@ flowchart TB
 
   Shell -->|Command| Kernel
   DocxLayout --> Kernel
-  XlsxLayout --> Kernel
+  Xlsx -->|"表格布局 + 槽位"| FieldUI
   FieldUI -->|setValue| Kernel
   Kernel --> Docx
   Kernel --> Xlsx
@@ -77,6 +77,8 @@ flowchart TB
   Docx --> OOXML[".docx / JSZip"]
   Xlsx --> XLSX[".xlsx / ExcelJS"]
 ```
+
+**字段 UI 与布局解耦：** Excel 表格由 `@contract-kit/xlsx` 的 `mountXlsxPreview` 渲染（含背景/字体色）；接入方只向槽位 `mount` 控件。Word 可视布局目前仍在页面侧（`docx-preview`），docx 包提供结构化 `getPreview`。
 
 **字段 UI 与 kernel 解耦：** kernel 只产出 `FormSchema`；谁往槽位里 `mount` 控件由接入方决定。`ui` 是默认实现，不是必选。
 
@@ -258,17 +260,14 @@ sequenceDiagram
 
 ## 示例怎么接
 
-| 目录 | 字段 UI | 说明 |
-|------|---------|------|
-| `examples/native-ui` | `@contract-kit/ui` `mountField` | 默认接入 + Definition 配置面板 |
-| `examples/custom-ui` | Element Plus + `createElementFieldMounter` | 证明可不依赖 `ui` |
-| `examples/shared` | — | `useContract`、DocxLayout、`DefinitionPanel` |
-| `examples/templates` | — | `build.ts` → 合同 + `*.definition.json` + `*.definition.alt.json` |
+| 目录 / 路径 | 说明 |
+|-------------|------|
+| `examples/nuxt-demo` `/` | 原生 UI；「校验」→ `kernel.validate()` |
+| `examples/nuxt-demo` `/custom` | Element Plus；「校验」→ `el-form` rules |
+| `examples/templates` | Word / Excel 全类型模板 |
+| `examples/mock` | Nitro API 共用数据 |
 
-definition 是数据：示例用同一模板切换 default/alt JSON，或 `updateField` 改 label/required 后下载 JSON。
-
-Word：`DocxLayout` 收 `mountField: FieldMounter`。  
-Excel：`XlsxDocument` 收 `field-component`。
+本地：`npm run example` → http://localhost:5210
 
 ---
 
@@ -282,6 +281,6 @@ Excel：`XlsxDocument` 收 `field-component`。
 
 ## 待办
 
-- [ ] **image 字段**：`FieldType` / `{{name:image}}` 已预留，但尚无 UI 与导出嵌图；需补上传/预览，以及 docx/xlsx `bind` 真正插入图片，并更新 api / README 约定 data 形态（URL / base64 等）。
+- [ ] **image 字段嵌图**：预览侧可选文件写入 data（data URL）；docx/xlsx `bind` 真正插入图片尚未做。
 - [x] **循环明细表**：`{{items.col}}` 行模板 + `data.items[]`；docx/xlsx bind 扩行；预览按业务 data 行数渲染，行内字段可填（行数由业务 `setValue('items', rows)` 控制）。
-- [x] **Examples 部署到 GitHub**：`npm run build:examples` → `dist-examples/`；Actions 推 `main`/`v2` 部署 GitHub Pages（`/native/`、`/custom/`）。
+- [x] **Examples 部署到 GitHub**：Pages 仅落地说明；交互 demo 为 Nuxt（`npm run example`，`/` 原生 + `/custom` Element Plus）。

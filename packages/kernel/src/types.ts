@@ -140,11 +140,19 @@ export interface DocxPreview {
   blocks: PreviewBlock[]
 }
 
+/** Preview-facing cell style (CSS-oriented). Colors are #rrggbb when resolvable. */
+export interface XlsxPreviewCellStyle {
+  background?: string
+  color?: string
+  fontWeight?: string
+}
+
 export interface XlsxPreviewCell {
   inlines: PreviewInline[]
   colspan?: number
   rowspan?: number
   skip?: boolean
+  style?: XlsxPreviewCellStyle
 }
 
 export interface XlsxPreviewSheet {

@@ -20,20 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install
-        run: npm ci
-
-      - name: Build examples site
-        env:
-          # Project Pages: https://<user>.github.io/contract-kit/
-          EXAMPLES_BASE: /contract-kit/
-          # public/templates already in git; regenerating needs package dist/
-          SKIP_TEMPLATES: '1'
+      - name: Build landing
         run: node scripts/build-examples-site.mjs
 
       - uses: actions/upload-pages-artifact@v3

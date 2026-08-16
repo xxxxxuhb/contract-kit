@@ -1,7 +1,7 @@
 {
   "name": "@contract-kit/xlsx",
   "version": "0.1.0",
-  "description": "Excel (.xlsx) adapter for contract-kit",
+  "description": "Excel (.xlsx) adapter and preview layout for contract-kit",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -9,13 +9,14 @@
       "types": "./dist/index.d.ts",
       "require": "./dist/index.js",
       "default": "./dist/index.js"
-    }
+    },
+    "./style.css": "./dist/style.css"
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && cp src/style.css dist/style.css",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

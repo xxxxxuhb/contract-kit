@@ -12,12 +12,13 @@ npm i contract-kit
 |----------|------|
 | `contract-kit` | `createKernel`、标记工具、kernel 类型 |
 | `contract-kit/docx` | `DocxAdapter` |
-| `contract-kit/xlsx` | `XlsxAdapter` |
+| `contract-kit/xlsx` | `XlsxAdapter` / `mountXlsxPreview` |
+| `contract-kit/xlsx/style.css` | Excel 预览表格骨架样式 |
 | `contract-kit/ui` | `createField` / `mountField` |
 | `contract-kit/ui/style.css` | 原生字段样式 |
 | `contract-kit/pdf` | `exportFilledDocument` 等 |
 
-等价子包：`@contract-kit/kernel`、`docx`、`xlsx`、`ui`、`pdf`。
+等价子包：`@contract-kit/kernel`、`docx`、`xlsx`、`ui`、`pdf`。也可直接 `import 'contract-kit/xlsx/style.css'` / `@contract-kit/xlsx/style.css`。
 
 ---
 
@@ -256,10 +257,30 @@ interface DocumentAdapter {
 }
 ```
 
-| 类 | 导入 | 说明 |
-|----|------|------|
+| 类 / API | 导入 | 说明 |
+|----------|------|------|
 | `DocxAdapter` | `contract-kit/docx` | OOXML / JSZip；按 `{{marker}}` bind |
-| `XlsxAdapter` | `contract-kit/xlsx` | ExcelJS；单元格文本中的标记 |
+| `XlsxAdapter` | `contract-kit/xlsx` | ExcelJS；单元格文本中的标记；`getPreview` 含 `style`（背景/字体色等） |
+| `mountXlsxPreview` | `contract-kit/xlsx` | 把 `getPreview()` 的 sheets 渲成表格 DOM，业务只注入 `mountField` |
+
+```ts
+import { XlsxAdapter, mountXlsxPreview } from 'contract-kit/xlsx'
+import 'contract-kit/xlsx/style.css'
+
+const preview = kernel.getPreview()
+if (preview?.kind === 'xlsx') {
+  const handle = mountXlsxPreview(container, {
+    sheets: preview.sheets,
+    fields: kernel.getFormSchema().fields,
+    validation: kernel.validate(),
+    mountField: myMounter, // 或包一层 @contract-kit/ui 的 mountField
+    onChange: (path, value) => kernel.dispatch({ type: 'setValue', path, value }),
+  })
+  // handle.update({ sheets, fields, validation }); handle.destroy()
+}
+```
+
+`XlsxPreviewCell.style`（可选）：`background` / `color`（`#rrggbb`）、`fontWeight`。`argb` 直出；仅有 `theme` 索引时用默认 Office 主题近似色。不覆盖渐变/条件格式。
 
 ---
 
@@ -290,7 +311,7 @@ handle.destroy()
 
 `FieldHandle`：`el` / `update` / `destroy`。
 
-不引入本包时，在槽位自挂组件即可（见 `examples/custom-ui`）。
+不引入本包时，在槽位自挂组件即可（见 `examples/nuxt-demo` 的 `/custom`）。
 
 ---
 
@@ -386,6 +407,26 @@ save({
   data: kernel.getData(),
 })
 ```
+
+---
+
+## 示例（Nuxt · `examples/nuxt-demo`）
+
+本地：`npm run example` → http://localhost:5210
+
+| 路径 | 字段 UI | 校验 |
+|------|---------|------|
+| `/` | `@contract-kit/ui` | 「校验」→ `kernel.validate()` |
+| `/custom` | Element Plus 自绘 | 「校验」→ `el-form` rules（页面实现） |
+
+API（Nitro）：
+
+| 接口 | 说明 |
+|------|------|
+| `GET /api/contracts` | 合同列表 |
+| `GET /api/contracts/:id` | `definition`（已合并 options）+ 草稿 `data` |
+| `GET /api/contracts/:id/options` | 选项字典 |
+| `GET /api/contracts/:id/file` | 模板二进制 |
 
 ---
 

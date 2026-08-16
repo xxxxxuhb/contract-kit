@@ -1,63 +1,17 @@
 #!/usr/bin/env node
 /**
- * Build native-ui + custom-ui into dist-examples/ for GitHub Pages.
- * Usage:
- *   EXAMPLES_BASE=/contract-kit/ node scripts/build-examples-site.mjs
- * Local default base is / (site served from dist-examples root).
+ * Build a minimal static landing for GitHub Pages.
+ * The interactive demo is Nuxt (`npm run example`) and needs a Node server.
  */
 import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawnSync } from 'node:child_process'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const outRoot = join(root, 'dist-examples')
-const baseRoot = (process.env.EXAMPLES_BASE ?? '/').replace(/\/?$/, '/')
-
-function run(command, args, env = {}) {
-  const result = spawnSync(command, args, {
-    cwd: root,
-    env: { ...process.env, ...env },
-    stdio: 'inherit',
-    // Resolve npm/npx via PATH on Actions / Windows.
-    shell: true,
-  })
-  if (result.error) {
-    console.error(result.error)
-    process.exit(1)
-  }
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1)
-  }
-}
 
 rmSync(outRoot, { recursive: true, force: true })
 mkdirSync(outRoot, { recursive: true })
-
-// CI can skip: public/templates are committed; `templates` needs package dist/.
-if (process.env.SKIP_TEMPLATES === '1') {
-  console.log('Skipping templates (using committed public/templates)')
-} else {
-  run('npm', ['run', 'templates'])
-}
-
-run('npm', ['run', 'build', '-w', '@contract-kit/example-native-ui'], {
-  EXAMPLE_BASE: `${baseRoot}native/`,
-  EXAMPLE_OUT_DIR: '../../dist-examples/native',
-})
-
-run('npm', ['run', 'build', '-w', '@contract-kit/example-custom-ui'], {
-  EXAMPLE_BASE: `${baseRoot}custom/`,
-  EXAMPLE_OUT_DIR: '../../dist-examples/custom',
-})
-
 cpSync(join(root, 'examples/site/index.html'), join(outRoot, 'index.html'))
-
-// Helpful for project Pages: ensure trailing-slash paths resolve.
-writeFileSync(
-  join(outRoot, '.nojekyll'),
-  '',
-  'utf8',
-)
-
-console.log(`Built examples site → ${outRoot} (base ${baseRoot})`)
+writeFileSync(join(outRoot, '.nojekyll'), '', 'utf8')
+console.log(`Built examples landing → ${outRoot}`)

@@ -1,0 +1,27 @@
+.ck-xlsx-sheet {
+  margin-bottom: 16px;
+}
+
+.ck-xlsx-sheet-name {
+  padding: 8px 10px;
+  font-weight: 600;
+}
+
+.ck-xlsx-table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  font-size: 13px;
+}
+
+.ck-xlsx-table td {
+  border: 1px solid #d8dee8;
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+.ck-xlsx-table .ck-field-slot {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: baseline;
+}

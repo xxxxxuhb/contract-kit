@@ -21,6 +21,7 @@
       "require": "./dist/xlsx.js",
       "default": "./dist/xlsx.js"
     },
+    "./xlsx/style.css": "./dist/xlsx-style.css",
     "./ui": {
       "types": "./dist/ui.d.ts",
       "require": "./dist/ui.js",
@@ -37,7 +38,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && cp ../ui/dist/style.css dist/style.css",
+    "build": "tsc -p tsconfig.json && cp ../ui/dist/style.css dist/style.css && cp ../xlsx/dist/style.css dist/xlsx-style.css",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

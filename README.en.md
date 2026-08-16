@@ -1,161 +1,34 @@
 # contract-kit
 
-[中文](./README.md) | **English**
+**[中文](./README.md)** | English
 
-**Fill contracts on the original Word / Excel layout — not on a separate form that regenerates the document.**
+Headless contract template runtime for Word / Excel.
 
-`contract-kit` is a **headless** contract-template runtime: the kernel owns field definitions, filled data, and export; your app owns preview and form controls. Embed it in an existing system (upload, auth, approval, and OSS stay yours).
-
-> Not an online Office suite, not a low-code form builder, and not a full contract platform.
-
-## Why use it
-
-| Pain point | What contract-kit does |
-|------------|------------------------|
-| Form layout ≠ contract layout | Markers live in `.docx` / `.xlsx`; preview keeps the original layout; inputs sit on the markers |
-| Awkward to stuff select options into Word | Options live in `definition` JSON — templates stay clean |
-| Export corrupts the template | Source file is read-only; export = source ⊕ definition ⊕ data |
-| Locked to one UI library | Kernel / adapters are framework-free; optional native `ui`, or roll your own |
-
-## How it works
-
-Markers in the template:
-
-```text
-Party A: {{partyA}}
-Amount: {{amount:number}}
-Payment: {{payMethod:select}}
-Sign date: {{signDate:date}}
-Line items: {{items.name}} / {{items.qty:number}}  (repeating rows; data.items[])
-Read-only: {{filledAt:display}}  (dynamic data, no input control)
-```
-
-Persist three artifacts at runtime:
-
-1. **Source file** — immutable template  
-2. **definition** — field types, label, required, options, anchors  
-3. **data** — user-entered values  
-
-Open with `hydrate`, fill with `setValue`, `export` a filled `.docx` / `.xlsx`, then optionally pass it to `@contract-kit/pdf` for a matching PDF.
-
-## Install
-
-```bash
-npm i contract-kit
-```
-
-Or install packages directly: `@contract-kit/kernel`, `@contract-kit/docx`, `@contract-kit/xlsx`, `@contract-kit/ui`, `@contract-kit/pdf`.
-
-## Quick start
-
-```ts
-import { createKernel } from 'contract-kit'
-import { DocxAdapter } from 'contract-kit/docx'
-import { mountField } from 'contract-kit/ui'
-import 'contract-kit/ui/style.css'
-
-const kernel = createKernel({ adapter: new DocxAdapter() })
-
-// Published template: source file + field definition
-await kernel.dispatch({
-  type: 'hydrate',
-  source: { kind: 'docx', buffer },
-  definition, // includes label / required / options
-  data: {},
-})
-
-// Mount a native control on a marker slot (or use your own UI)
-mountField(slotEl, {
-  name: 'partyA',
-  field: kernel.getFormSchema().fields.find((f) => f.name === 'partyA'),
-  onChange: (value) => {
-    void kernel.dispatch({ type: 'setValue', path: 'partyA', value })
-  },
-})
-
-const stop = kernel.subscribe(() => {
-  // schema / validation / preview updated
-})
-
-const result = await kernel.dispatch({ type: 'export' })
-// result.buffer → download the filled .docx
-```
-
-If you only have the document and no definition yet, use `load` to discover fields from `{{markers}}`, then enrich with a definition (labels, options, required).
-
-## Packages
-
-| Package | Role |
-|---------|------|
-| `contract-kit` | Umbrella entry; re-exports core APIs |
-| `@contract-kit/kernel` | State machine: `dispatch` / schema / validate / subscribe |
-| `@contract-kit/docx` | Word: scan markers, preview model, bind, export |
-| `@contract-kit/xlsx` | Excel: cell markers, merged preview, bind, export |
-| `@contract-kit/ui` | **Optional**: framework-free native `input` / `select` / `textarea` / `date` |
-| `@contract-kit/pdf` | **Optional (browser)**: filled docx/xlsx → PDF (three modes) |
-
-```ts
-import { exportFilledDocument } from 'contract-kit/pdf'
-
-const filled = await kernel.dispatch({ type: 'export' })
-if (filled.type !== 'exported') throw new Error('export failed')
-
-// `mode` is chosen by the caller; default is html2canvas
-await exportFilledDocument({
-  kind: filled.format,
-  buffer: filled.buffer,
-  options: { mode: 'html2canvas' }, // | 'canvas-draw-element' | 'print'
-})
-```
-
-| `mode` | Behavior |
-|--------|----------|
-| `html2canvas` (default) | DOM snapshot + jsPDF → PDF bytes |
-| `canvas-draw-element` | WICG [html-in-canvas](https://github.com/WICG/html-in-canvas); needs Chromium `chrome://flags/#canvas-draw-element` |
-| `print` | System print → “Save as PDF” (most reliable; no bytes returned) |
-
-Use `supportsCanvasDrawElement()` to detect native support.
-
-### Field UI: native default, or fully custom
-
-- **Default**: `@contract-kit/ui` `createField` / `mountField` — no Vue / React / Element dependency.  
-- **Custom**: skip `ui` and mount your own components on marker slots (see `examples/custom-ui`).
-
-## Examples
+## Examples (Nuxt)
 
 ```bash
 npm install
-npm run templates          # purchase-contract templates + definition.json
-npm run example:native     # http://localhost:5199  native field UI
-npm run example:custom     # http://localhost:5200  Element Plus custom fields
-npm run build:examples     # static site → dist-examples/ (Pages artifact)
+npm run templates
+npm run example     # http://localhost:5210
 ```
 
-Live demos (GitHub Pages; auto-deploys on push to `main` / `v2`):
+- `/` — native `@contract-kit/ui`, validate via `kernel.validate()`
+- `/custom` — Element Plus fields, validate via `el-form` rules
 
-- https://xxxxxuhb.github.io/contract-kit/
-- [native-ui](https://xxxxxuhb.github.io/contract-kit/native/) · [custom-ui](https://xxxxxuhb.github.io/contract-kit/custom/)
+## Limitations & environment
 
-Set **Settings → Pages → Source** to **GitHub Actions** once before the first deploy.
+| Item | Requirement / note |
+|------|-------------------|
+| **Node** | `>= 20` (build, examples, scripts) |
+| **Browsers** | Modern evergreen: Chrome / Edge **≥ 94**, Firefox **≥ 93**, Safari **≥ 15.4** (compile target ES2022; needs `Uint8Array` and basic DOM) |
+| **Runtime** | `kernel` / `docx` / `xlsx` work in Node and browsers; `ui`, `mountXlsxPreview`, Word preview (`docx-preview`), and `pdf` need a **browser DOM** — do not call them on a pure SSR path |
+| **PDF** | `@contract-kit/pdf` is **browser-only**; default `html2canvas`, not a server-side Office→PDF engine; `canvas-draw-element` needs a Chromium experimental flag |
+| **Word preview** | Layout via `docx-preview`; not pixel-identical to desktop Word |
+| **Excel preview** | `getPreview` / `mountXlsxPreview` support fill/font colors (`argb`; theme colors approximated); no gradients, conditional formatting, charts, etc. |
+| **Image fields** | UI can store a data URL; **embedding on docx/xlsx bind is not implemented yet** |
+| **Non-goals** | Full Office editor, server-grade layout engines, Vue/React bindings (`ui` is framework-free DOM) |
 
-| Path | Description |
-|------|-------------|
-| `examples/native-ui` | Shell + `@contract-kit/ui`; **Definition** config panel on the right |
-| `examples/custom-ui` | Same kernel; fields swapped for Element Plus |
-| `examples/shared` | Shared hydrate / DocxLayout / `DefinitionPanel` |
-| `examples/templates` | Templates + `*.definition.json` + alternate `*.definition.alt.json` |
-
-In the examples you can switch default/alt definitions, edit label/required inline (`updateField`), and upload/download JSON — **no app code changes required**.
-
-## Development
-
-```bash
-npm test                   # kernel / docx / xlsx / ui
-npm run build              # build all packages
-```
-
-Architecture and sequence diagrams: [docs/architecture.md](./docs/architecture.md) (Chinese).  
-API reference: [docs/api.md](./docs/api.md) (Chinese).
+Docs: [docs/architecture.md](./docs/architecture.md) · [docs/api.md](./docs/api.md)
 
 ## License
 

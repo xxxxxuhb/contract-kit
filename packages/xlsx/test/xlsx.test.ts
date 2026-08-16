@@ -88,6 +88,30 @@ async function makeItemsXlsx(): Promise<Uint8Array> {
   return new Uint8Array(buffer)
 }
 
+test('getPreview includes solid fill and font color', async () => {
+  const workbook = new ExcelJS.Workbook()
+  const sheet = workbook.addWorksheet('样式')
+  const cell = sheet.getCell('A1')
+  cell.value = '标题'
+  cell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF1E3A5F' },
+  }
+  cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+  const buffer = new Uint8Array(await workbook.xlsx.writeBuffer())
+
+  const kernel = createKernel({ adapter: new XlsxAdapter() })
+  await kernel.dispatch({ type: 'load', source: { kind: 'xlsx', buffer } })
+  const preview = kernel.getPreview()
+  assert.equal(preview?.kind, 'xlsx')
+  if (preview?.kind !== 'xlsx') return
+  const style = preview.sheets[0].cells[0][0].style
+  assert.equal(style?.background, '#1e3a5f')
+  assert.equal(style?.color, '#ffffff')
+  assert.equal(style?.fontWeight, 'bold')
+})
+
 test('xlsx discovers table fields and expands rows on export', async () => {
   const buffer = await makeItemsXlsx()
   const kernel = createKernel({ adapter: new XlsxAdapter() })

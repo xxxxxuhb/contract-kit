@@ -47,5 +47,6 @@ export type {
   XlsxAnchor,
   XlsxPreview,
   XlsxPreviewCell,
+  XlsxPreviewCellStyle,
   XlsxPreviewSheet,
 } from './types'

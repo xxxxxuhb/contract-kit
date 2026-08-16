@@ -14,6 +14,18 @@ import {
   type Source,
 } from '@contract-kit/kernel'
 import ExcelJS from 'exceljs'
+import { readCellStyle } from './cell-style'
+
+export {
+  expandXlsxSheets,
+  mountXlsxPreview,
+  type MountXlsxPreviewOptions,
+  type XlsxFieldHandle,
+  type XlsxFieldMountContext,
+  type XlsxFieldMounter,
+  type XlsxPreviewHandle,
+} from './mount-preview'
+export { excelColorToCss, readCellStyle } from './cell-style'
 
 function columnNumber(address: string): number {
   const letters = address.match(/^[A-Z]+/)?.[0] ?? 'A'
@@ -71,7 +83,6 @@ function rowPlainText(row: ExcelJS.Row): string {
 }
 
 function expandSheetTables(sheet: ExcelJS.Worksheet, data: Record<string, unknown>): void {
-  // Collect template rows first (row numbers may shift)
   type Hit = { tableName: string; rowNumber: number }
   const hits: Hit[] = []
   const seenTables = new Set<string>()
@@ -85,7 +96,6 @@ function expandSheetTables(sheet: ExcelJS.Worksheet, data: Record<string, unknow
     }
   })
 
-  // Process from bottom to top so earlier row numbers stay stable
   hits.sort((a, b) => b.rowNumber - a.rowNumber)
   for (const hit of hits) {
     const rows = Array.isArray(data[hit.tableName]) ? (data[hit.tableName] as unknown[]) : []
@@ -200,7 +210,8 @@ export class XlsxAdapter implements DocumentAdapter {
               row.push({ inlines: [], skip: true })
               continue
             }
-            const text = cellText(sheet.getRow(r).getCell(c).value)
+            const excelCell = sheet.getRow(r).getCell(c)
+            const text = cellText(excelCell.value)
             const merged = span.get(key)
             row.push({
               inlines: splitByMarkers(text).map((segment) =>
@@ -210,6 +221,7 @@ export class XlsxAdapter implements DocumentAdapter {
               ),
               colspan: merged?.colspan,
               rowspan: merged?.rowspan,
+              style: readCellStyle(excelCell),
             })
           }
           cells.push(row)
