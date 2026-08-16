@@ -29,6 +29,7 @@ export function buildFormSchema(state: KernelState): FormSchema {
       options: field.options,
       columns: field.columns,
       rules: field.rules,
+      outputFormat: field.outputFormat,
       value: state.data[field.name],
     })),
   }

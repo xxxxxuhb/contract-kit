@@ -52,6 +52,54 @@ test('export binds values and leaves the original buffer untouched', async () =>
   assert.doesNotMatch(xml, /\{\{payMethod:select\}\}/)
 })
 
+test('export applies definition outputFormat on untyped markers', async () => {
+  const buffer = await makeDocx(['日期：{{signDate}} 金额：{{amount}} 付款：{{payMethod}}'])
+  const kernel = createKernel({ adapter: new DocxAdapter() })
+  await kernel.dispatch({
+    type: 'hydrate',
+    source: { kind: 'docx', buffer },
+    definition: {
+      version: 1,
+      source: { kind: 'docx', hash: sha(buffer) },
+      fields: [
+        {
+          id: '1',
+          name: 'signDate',
+          type: 'date',
+          outputFormat: 'DD/MM/YYYY',
+          anchor: { kind: 'marker', name: 'signDate' },
+        },
+        {
+          id: '2',
+          name: 'amount',
+          type: 'number',
+          outputFormat: '#,##0.00',
+          anchor: { kind: 'marker', name: 'amount' },
+        },
+        {
+          id: '3',
+          name: 'payMethod',
+          type: 'select',
+          outputFormat: 'label',
+          options: [{ value: 'wire', label: '电汇' }],
+          anchor: { kind: 'marker', name: 'payMethod' },
+        },
+      ],
+    },
+    data: { signDate: '2026-08-16', amount: 15998, payMethod: 'wire' },
+  })
+
+  const result = await kernel.dispatch({ type: 'export' })
+  assert.equal(result.type, 'exported')
+  if (result.type !== 'exported') return
+  const xml = await readDocxDocumentXml(result.buffer)
+  assert.match(xml, /16\/08\/2026/)
+  assert.match(xml, /15,998.00/)
+  assert.match(xml, /电汇/)
+  assert.doesNotMatch(xml, /2026-08-16/)
+  assert.doesNotMatch(xml, /wire/)
+})
+
 test('hydrate replays definition + data onto a fresh kernel', async () => {
   const buffer = await makeDocx(['合同编号{{contractNo}}'])
   const kernel = createKernel({ adapter: new DocxAdapter() })

@@ -1,3 +1,4 @@
+import { formatData } from './format'
 import { hashBytes } from './hash'
 import { createId } from './id'
 import { cloneData, insertTableRow, removeTableRow, setDataPath } from './path'
@@ -19,6 +20,7 @@ import type {
 export function createKernel(options: CreateKernelOptions): Kernel {
   const adapter: DocumentAdapter = options.adapter
   const validators = options.validators ?? []
+  const formatters = options.formatters
   let viewport: ViewportPort | null = null
   let preview: PreviewModel | null = null
   const listeners = new Set<(event: KernelEvent) => void>()
@@ -214,8 +216,8 @@ export function createKernel(options: CreateKernelOptions): Kernel {
       }
 
       case 'export': {
-        requireDefinition()
-        await adapter.bind(state.data)
+        const definition = requireDefinition()
+        await adapter.bind(formatData(definition, state.data, formatters))
         const buffer = await adapter.export()
         const format = command.format ?? adapter.kind
         emit({ type: 'exported', format, bytes: buffer.byteLength })
@@ -228,6 +230,8 @@ export function createKernel(options: CreateKernelOptions): Kernel {
     getState: snapshot,
     getDefinition: () => snapshot().definition,
     getData: () => snapshot().data,
+    getExportData: () =>
+      state.definition ? formatData(state.definition, state.data, formatters) : {},
     getFormSchema: () => buildFormSchema(state),
     getView: () => buildView(state),
     getPreview: () => preview,

@@ -12,6 +12,7 @@ const FIELD_TYPES = new Set<string>([
   'display',
 ])
 
+/** `{{name}}` is the contract. `:type` is an optional discover hint; definition wins. */
 const MARKER_RE =
   /\{\{\s*([^\s:{}]+)\s*(?::\s*([A-Za-z_][A-Za-z0-9_]*))?\s*\}\}/g
 

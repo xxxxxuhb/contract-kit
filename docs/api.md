@@ -26,22 +26,20 @@ npm i paperfill
 
 ```text
 {{name}}
-{{name:type}}
 {{items.col}}
-{{items.col:number}}
 {{items.$index}}
 ```
 
 | 项 | 说明 |
 |----|------|
 | `name` | 字段名（data / definition 的 key） |
-| `type` | 可选；缺省为 `text` |
 | `items.col` | **循环明细表**列标记：表字段名 + `.` + 列名 |
 | `items.$index` | 可选；导出/预览时替换为 1-based 行号 |
 
-支持的 `type`：`text` | `textarea` | `number` | `date` | `select` | `multiselect` | `table` | `image` | `display`。
+文档里只放锚点名字。`type` / `label` / `required` / `options` / `outputFormat` / 表 `columns` 都写在 `TemplateDefinition`。
 
-> `label` / `required` / `options` / 表 `columns` **不在标记里**，写在 `TemplateDefinition`。  
+`{{name:type}}` 仍能解析，仅作第一次 `load` 的类型提示；`hydrate` 之后以 definition 为准。
+
 > `image`：data 为 data URL（`data:image/png;base64,...`）；`bind` / `export` 会嵌入 Word drawing / Excel 单元格图。  
 > `display`：纯展示，data 仍可 `setValue` / 导出替换，预览不渲染输入框（适合联动结果、系统填入的日期等）。
 
@@ -93,7 +91,9 @@ await kernel.dispatch({ type: 'removeRow', table: 'items', index: 0 })
 | `hydrateFromBundle(bundle)` | 生成 `hydrate` 命令 |
 | `snapshotKernel(kernel)` | UI 只读快照 |
 | `replaceRowMarkers(text, table, row, index)` | 替换一行内的 `table.col` / `$index` |
-| `stringifyFieldValue(value)` | 导出时把值转成字符串 |
+| `stringifyFieldValue(value)` | 把值转成字符串（无 outputFormat） |
+| `formatFieldValue(value, field, ctx?)` | 按 `outputFormat` / 自定义 formatter 转展示值 |
+| `formatData(definition, data, formatters?)` | 生成导出用 data（`export` 内部会调） |
 
 ---
 
@@ -121,6 +121,7 @@ interface Field {
   options?: { value: string; label: string }[]
   columns?: FieldColumn[] // type === 'table'
   rules?: FieldRules
+  outputFormat?: string
   anchor: Anchor
 }
 
@@ -140,6 +141,7 @@ interface FieldColumn {
   required?: boolean
   options?: FieldOption[]
   rules?: FieldRules
+  outputFormat?: string
 }
 ```
 
@@ -176,6 +178,19 @@ interface ValidationResult {
 5. `rules`：`min`/`max`、`minLength`/`maxLength`、`pattern`、`dateFormat`
 6. `createKernel({ validators })`：自定义 / 跨字段，返回 `{ path, message }` 或数组
 
+### `outputFormat`
+
+`data` 始终存规范值（日期 `YYYY-MM-DD`、选项 `value`、数字为 number）。编辑器用控件自己的显示格式；`export` / `getExportData()` 按 `outputFormat` 写成文档字符串。
+
+| `outputFormat` | 适用 | 例 |
+|----------------|------|----|
+| `YYYY年MM月DD日` / `DD/MM/YYYY` / `DD日MM月YYYY年` | `date` | `2026-08-16` → `16日08月2026年` |
+| `#,##0.00` / `0` | `number` | `15998` → `15,998.00` |
+| `label` | `select` / `multiselect` | `wire` → `电汇` |
+| 自定义名 | 任意 | `createKernel({ formatters: { amountCn } })` |
+
+表格列用 `columns[].outputFormat`。图片字段不会被格式化。
+
 ### `FormSchema`
 
 ```ts
@@ -193,7 +208,12 @@ interface FormSchema {
 ```ts
 import { createKernel, DocxAdapter } from 'paperfill'
 
-const kernel = createKernel({ adapter: new DocxAdapter() })
+const kernel = createKernel({
+  adapter: new DocxAdapter(),
+  formatters: {
+    amountCn: ({ value }) => String(value), // outputFormat: 'amountCn'
+  },
+})
 ```
 
 ### 方法一览
@@ -203,7 +223,8 @@ const kernel = createKernel({ adapter: new DocxAdapter() })
 | `dispatch(command)` | `Promise<DispatchResult>` | **唯一写入口** |
 | `getState()` | `KernelState` | definition + data + source + validation 快照 |
 | `getDefinition()` | `TemplateDefinition \| null` | 字段定义 |
-| `getData()` | `Record<string, unknown>` | 填写值 |
+| `getData()` | `Record<string, unknown>` | 填写值（规范值，未套 `outputFormat`） |
+| `getExportData()` | `Record<string, unknown>` | 套过 `outputFormat` / `formatters` 的导出值 |
 | `getFormSchema()` | `FormSchema` | 表单字段（含当前 value） |
 | `getView()` | `ViewModel` | `{ id, label, value }[]` |
 | `getPreview()` | `PreviewModel \| null` | adapter 预览结构 |
@@ -241,7 +262,7 @@ type DispatchResult =
 
 - `load`：适合「只有文件」；业务 options / 必填需再 hydrate 或 `updateField`。
 - `hydrate`：已发布模板主路径；`source.kind` 须与 adapter 一致。见下方「hydrate 三件套」。
-- `export`：在**副本**上替换标记并扩行/嵌图；未写入 `data` 的扁平标记导出时清空（与预览空槽一致）；`getSource().buffer` 不变。
+- `export`：先按 `outputFormat` 生成导出值，再在**副本**上替换标记并扩行/嵌图；`getData()` 仍是规范值；未写入 `data` 的扁平标记导出时清空；`getSource().buffer` 不变。
 
 ### 事件 `KernelEvent`
 

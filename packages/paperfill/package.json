@@ -1,8 +1,26 @@
 {
   "name": "paperfill",
-  "version": "0.1.0",
-  "description": "Contract template runtime: kernel + docx/xlsx adapters + framework-free field UI",
+  "version": "0.1.1",
+  "description": "在 Word / Excel 原文排版上填写合同。Headless contract template runtime for docx/xlsx.",
+  "keywords": [
+    "contract",
+    "docx",
+    "xlsx",
+    "word",
+    "excel",
+    "template",
+    "fill",
+    "paperfill"
+  ],
   "license": "MIT",
+  "homepage": "https://github.com/xxxxxuhb/paperfill#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xxxxxuhb/paperfill.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xxxxxuhb/paperfill/issues"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -48,7 +66,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && cp ../ui/dist/style.css dist/style.css && cp ../xlsx/dist/style.css dist/xlsx-style.css",

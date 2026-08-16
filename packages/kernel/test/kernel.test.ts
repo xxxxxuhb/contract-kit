@@ -128,6 +128,47 @@ test('setValue / validate / getView / export follow the page API', async () => {
     assert.equal(exported.format, 'docx')
   }
   assert.deepEqual(adapter.data, { partyA: 'xx公司', payMethod: 'wire' })
+  assert.deepEqual(kernel.getExportData(), { partyA: 'xx公司', payMethod: 'wire' })
+})
+
+test('export binds outputFormat without changing getData', async () => {
+  const adapter = new MemoryAdapter()
+  const kernel = createKernel({
+    adapter,
+    formatters: {
+      amountCn: ({ value }) => `CNY ${value}`,
+    },
+  })
+  await kernel.dispatch({
+    type: 'hydrate',
+    source: source(),
+    definition: {
+      version: 1,
+      source: { kind: 'docx', hash: 'x' },
+      fields: [
+        {
+          id: 'd1',
+          name: 'signDate',
+          type: 'date',
+          outputFormat: 'DD/MM/YYYY',
+          anchor: { kind: 'marker', name: 'signDate' },
+        },
+        {
+          id: 'a1',
+          name: 'amount',
+          type: 'number',
+          outputFormat: 'amountCn',
+          anchor: { kind: 'marker', name: 'amount' },
+        },
+      ],
+    },
+    data: { signDate: '2026-08-16', amount: 99 },
+  })
+
+  assert.deepEqual(kernel.getData(), { signDate: '2026-08-16', amount: 99 })
+  assert.deepEqual(kernel.getExportData(), { signDate: '16/08/2026', amount: 'CNY 99' })
+  await kernel.dispatch({ type: 'export' })
+  assert.deepEqual(adapter.data, { signDate: '16/08/2026', amount: 'CNY 99' })
 })
 
 test('insertField rejects duplicate names; hydrate restores definition and data', async () => {

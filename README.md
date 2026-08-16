@@ -10,8 +10,8 @@
 
 | 场景 | 谁做什么 |
 |------|----------|
-| 采购 / 销售合同在**原文**填写 | 法务出 Word/Excel 排版，正文写 `{{partyA}}`、`{{items.qty:number}}`；业务员在浏览器里对着原文填，而不是另开一张表 |
-| 模板发布 | 运营上传 `.docx` / `.xlsx`；后端（或发布脚本）`load` 扫标记，补上 label / required / options，存成 **definition** |
+| 采购 / 销售合同在**原文**填写 | 法务出 Word/Excel 排版，正文写 `{{partyA}}`、`{{items.qty}}`；业务员在浏览器里对着原文填，而不是另开一张表 |
+| 模板发布 | 运营上传 `.docx` / `.xlsx`；后端（或发布脚本）`load` 扫标记，补上 type / label / required / options / outputFormat，存成 **definition** |
 | 草稿与续填 | 打开已发布合同：拉回原文件 + definition + 上次 `data`，`hydrate` 后接着填 |
 | 导出给对方 / 归档 | 浏览器 `export` 出已填写 Word/Excel；需要 PDF 时再对**已导出文件**做浏览器转 PDF |
 | 批量套打（无预览） | 服务端只跑 kernel：`hydrate` + `setData` + `export`，不挂 DOM |

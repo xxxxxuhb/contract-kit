@@ -43,6 +43,8 @@ export interface FieldColumn {
   required?: boolean
   options?: FieldOption[]
   rules?: FieldRules
+  /** Export / bind presentation. `data` stays canonical. */
+  outputFormat?: string
 }
 
 /** Declarative extra checks beyond required / select∈options. */
@@ -66,6 +68,8 @@ export interface Field {
   /** Present when type === 'table' */
   columns?: FieldColumn[]
   rules?: FieldRules
+  /** Export / bind presentation (`YYYY年MM月DD日`, `#,##0.00`, `label`, or a custom formatter name). */
+  outputFormat?: string
   anchor: Anchor
 }
 
@@ -107,6 +111,7 @@ export interface FormSchemaField {
   options?: FieldOption[]
   columns?: FieldColumn[]
   rules?: FieldRules
+  outputFormat?: string
   value: unknown
 }
 
@@ -231,6 +236,8 @@ export interface Kernel {
   getState(): KernelState
   getDefinition(): TemplateDefinition | null
   getData(): Record<string, unknown>
+  /** Data after `outputFormat` / custom formatters. Used by `export`. */
+  getExportData(): Record<string, unknown>
   getFormSchema(): FormSchema
   getView(): ViewModel
   getPreview(): PreviewModel | null
@@ -247,8 +254,17 @@ export type FieldValidator = (ctx: {
   fields: Field[]
 }) => ValidationIssue | ValidationIssue[] | null | undefined
 
+export type FieldFormatter = (ctx: {
+  value: unknown
+  field: Field | FieldColumn
+  name: string
+  data: Record<string, unknown>
+}) => unknown
+
 export interface CreateKernelOptions {
   adapter: DocumentAdapter
   /** Extra / cross-field checks; return a message to fail. */
   validators?: FieldValidator[]
+  /** Named formatters referenced by `Field.outputFormat`. */
+  formatters?: Record<string, FieldFormatter>
 }

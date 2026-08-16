@@ -3,28 +3,31 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import JSZip from 'jszip'
 import ExcelJS from 'exceljs'
-import { createKernel, type FieldColumn, type TemplateDefinition } from '@paperfill/kernel'
+import { createKernel, type FieldColumn, type FieldType, type TemplateDefinition } from '@paperfill/kernel'
 import { DocxAdapter } from '@paperfill/docx'
 import { XlsxAdapter } from '@paperfill/xlsx'
 
 type FieldMeta = {
+  type: FieldType
   label: string
   required?: boolean
+  outputFormat?: string
   options?: { value: string; label: string }[]
   columns?: FieldColumn[]
 }
 
-/** 业务侧字段配置：覆盖全部 FieldType（含 table 列内 select） */
+/** 业务侧字段配置：类型和导出格式都在这里，不写进 Word/Excel 标记 */
 const FIELD_META: Record<string, FieldMeta> = {
-  contractNo: { label: '合同编号', required: true },
-  signPlace: { label: '签订地点' },
-  partyA: { label: '甲方', required: true },
-  partyAAddress: { label: '甲方地址' },
-  partyAContact: { label: '甲方联系人' },
-  partyB: { label: '乙方', required: true },
-  partyBAddress: { label: '乙方地址' },
-  partyBContact: { label: '乙方联系人' },
+  contractNo: { type: 'text', label: '合同编号', required: true },
+  signPlace: { type: 'text', label: '签订地点' },
+  partyA: { type: 'text', label: '甲方', required: true },
+  partyAAddress: { type: 'text', label: '甲方地址' },
+  partyAContact: { type: 'text', label: '甲方联系人' },
+  partyB: { type: 'text', label: '乙方', required: true },
+  partyBAddress: { type: 'text', label: '乙方地址' },
+  partyBContact: { type: 'text', label: '乙方联系人' },
   items: {
+    type: 'table',
     label: '货物明细',
     required: true,
     columns: [
@@ -33,6 +36,7 @@ const FIELD_META: Record<string, FieldMeta> = {
         name: 'category',
         type: 'select',
         label: '类别',
+        outputFormat: 'label',
         options: [
           { value: 'hardware', label: '硬件' },
           { value: 'software', label: '软件' },
@@ -40,12 +44,14 @@ const FIELD_META: Record<string, FieldMeta> = {
         ],
       },
       { name: 'qty', type: 'number', label: '数量' },
-      { name: 'unitPrice', type: 'number', label: '单价' },
+      { name: 'unitPrice', type: 'number', label: '单价', outputFormat: '#,##0.00' },
     ],
   },
-  amount: { label: '合同金额' },
+  amount: { type: 'number', label: '合同金额', outputFormat: '#,##0.00' },
   payMethod: {
+    type: 'select',
     label: '付款方式',
+    outputFormat: 'label',
     options: [
       { value: 'wire', label: '电汇' },
       { value: 'acceptance', label: '承兑汇票' },
@@ -53,7 +59,9 @@ const FIELD_META: Record<string, FieldMeta> = {
     ],
   },
   deliveryRegions: {
+    type: 'multiselect',
     label: '交货区域',
+    outputFormat: 'label',
     options: [
       { value: 'east', label: '华东' },
       { value: 'north', label: '华北' },
@@ -61,14 +69,14 @@ const FIELD_META: Record<string, FieldMeta> = {
       { value: 'west', label: '西部' },
     ],
   },
-  payTerm: { label: '付款期限' },
-  deliveryDate: { label: '交货日期' },
-  deliveryPlace: { label: '交货地点' },
-  warranty: { label: '质保期限' },
-  signDate: { label: '签订日期' },
-  note: { label: '备注' },
-  filledAt: { label: '填写日' },
-  stamp: { label: '附件图片' },
+  payTerm: { type: 'text', label: '付款期限' },
+  deliveryDate: { type: 'date', label: '交货日期', outputFormat: 'DD日MM月YYYY年' },
+  deliveryPlace: { type: 'text', label: '交货地点' },
+  warranty: { type: 'text', label: '质保期限' },
+  signDate: { type: 'date', label: '签订日期', outputFormat: 'DD日MM月YYYY年' },
+  note: { type: 'textarea', label: '备注' },
+  filledAt: { type: 'display', label: '填写日', outputFormat: 'YYYY年MM月DD日' },
+  stamp: { type: 'image', label: '附件图片' },
 }
 
 async function publishDefinition(
@@ -84,8 +92,10 @@ async function publishDefinition(
   for (const field of definition.fields) {
     const next = meta[field.name]
     if (!next) continue
+    field.type = next.type
     field.label = next.label
     field.required = next.required
+    field.outputFormat = next.outputFormat
     if (next.options) field.options = next.options
     else delete field.options
     if (next.columns) {
@@ -97,6 +107,7 @@ async function publishDefinition(
           label: col.label ?? col.name,
           required: col.required,
           options: col.options,
+          outputFormat: col.outputFormat,
         }
       })
     }
@@ -272,9 +283,9 @@ function goodsTable(): string {
   const values = [
     '{{items.$index}}',
     '{{items.name}}',
-    '{{items.category:select}}',
-    '{{items.qty:number}}',
-    '{{items.unitPrice:number}}',
+    '{{items.category}}',
+    '{{items.qty}}',
+    '{{items.unitPrice}}',
   ]
   const headerRow = `<w:tr>${header
     .map((h, i) =>
@@ -302,7 +313,7 @@ function goodsTable(): string {
         after: 60,
       })}
     </w:tc>
-    ${cellXml('{{amount:number}}', widths[4], { shade: COLORS.gold, bold: '1', color: COLORS.navy })}
+    ${cellXml('{{amount}}', widths[4], { shade: COLORS.gold, bold: '1', color: COLORS.navy })}
   </w:tr>`
   return `<w:tbl>
     <w:tblPr>
@@ -343,7 +354,7 @@ function signBox(): string {
         </w:tcPr>
         ${paragraph(run('甲方（盖章）', { bold: true, size: 20, color: COLORS.navy }), { before: 40, after: 80 })}
         ${paragraph(run('名称：{{partyA}}', { size: 20 }), { before: 40, after: 120 })}
-        ${paragraph(run('日期：{{signDate:date}}', { size: 20 }), { before: 40, after: 40 })}
+        ${paragraph(run('日期：{{signDate}}', { size: 20 }), { before: 40, after: 40 })}
       </w:tc>
       <w:tc>
         <w:tcPr>
@@ -353,7 +364,7 @@ function signBox(): string {
         </w:tcPr>
         ${paragraph(run('乙方（盖章）', { bold: true, size: 20, color: COLORS.navy }), { before: 40, after: 80 })}
         ${paragraph(run('名称：{{partyB}}', { size: 20 }), { before: 40, after: 120 })}
-        ${paragraph(run('日期：{{signDate:date}}', { size: 20 }), { before: 40, after: 40 })}
+        ${paragraph(run('日期：{{signDate}}', { size: 20 }), { before: 40, after: 40 })}
       </w:tc>
     </w:tr>
   </w:tbl>`
@@ -396,10 +407,10 @@ async function makeDocx(): Promise<Uint8Array> {
     sectionTitle('三、付款与交付'),
     paragraph('', { before: 80 }),
     infoTable([
-      { label: '付款方式', value: '{{payMethod:select}}' },
-      { label: '交货区域', value: '{{deliveryRegions:multiselect}}', accent: true },
+      { label: '付款方式', value: '{{payMethod}}' },
+      { label: '交货区域', value: '{{deliveryRegions}}', accent: true },
       { label: '付款期限', value: '{{payTerm}}' },
-      { label: '交货日期', value: '{{deliveryDate:date}}', accent: true },
+      { label: '交货日期', value: '{{deliveryDate}}', accent: true },
       { label: '交货地点', value: '{{deliveryPlace}}' },
       { label: '质保期限', value: '{{warranty}}', accent: true },
     ]),
@@ -407,10 +418,10 @@ async function makeDocx(): Promise<Uint8Array> {
     sectionTitle('四、其他约定'),
     paragraph('', { before: 80 }),
     infoTable([
-      { label: '签订日期', value: '{{signDate:date}}' },
-      { label: '备注说明', value: '{{note:textarea}}', accent: true },
-      { label: '填写日', value: '{{filledAt:display}}' },
-      { label: '附件图片', value: '{{stamp:image}}', accent: true },
+      { label: '签订日期', value: '{{signDate}}' },
+      { label: '备注说明', value: '{{note}}', accent: true },
+      { label: '填写日', value: '{{filledAt}}' },
+      { label: '附件图片', value: '{{stamp}}', accent: true },
     ]),
     paragraph('', { before: 200 }),
     sectionTitle('五、签章确认'),
@@ -532,17 +543,17 @@ async function makeXlsx(): Promise<Uint8Array> {
     ['乙方（供货方）', '{{partyB}}'],
     ['乙方地址', '{{partyBAddress}}'],
     ['乙方联系人', '{{partyBContact}}'],
-    ['合同金额（元）', '{{amount:number}}'],
-    ['付款方式', '{{payMethod:select}}'],
-    ['交货区域', '{{deliveryRegions:multiselect}}'],
+    ['合同金额（元）', '{{amount}}'],
+    ['付款方式', '{{payMethod}}'],
+    ['交货区域', '{{deliveryRegions}}'],
     ['付款期限', '{{payTerm}}'],
-    ['交货日期', '{{deliveryDate:date}}'],
+    ['交货日期', '{{deliveryDate}}'],
     ['交货地点', '{{deliveryPlace}}'],
     ['质保期限', '{{warranty}}'],
-    ['签订日期', '{{signDate:date}}'],
-    ['备注说明', '{{note:textarea}}'],
-    ['填写日', '{{filledAt:display}}'],
-    ['附件图片', '{{stamp:image}}'],
+    ['签订日期', '{{signDate}}'],
+    ['备注说明', '{{note}}'],
+    ['填写日', '{{filledAt}}'],
+    ['附件图片', '{{stamp}}'],
   ]
   rows.forEach(([label, marker], i) => paintRow(i + 4, label, marker, i % 2 === 1))
 
@@ -562,9 +573,9 @@ async function makeXlsx(): Promise<Uint8Array> {
   }
   sheet.getCell(`A${itemsRow}`).value = '{{items.$index}}'
   sheet.getCell(`B${itemsRow}`).value = '{{items.name}}'
-  sheet.getCell(`C${itemsRow}`).value = '{{items.category:select}}'
-  sheet.getCell(`D${itemsRow}`).value = '{{items.qty:number}}'
-  sheet.getCell(`E${itemsRow}`).value = '{{items.unitPrice:number}}'
+  sheet.getCell(`C${itemsRow}`).value = '{{items.category}}'
+  sheet.getCell(`D${itemsRow}`).value = '{{items.qty}}'
+  sheet.getCell(`E${itemsRow}`).value = '{{items.unitPrice}}'
   for (const col of ['A', 'B', 'C', 'D', 'E']) {
     sheet.getCell(`${col}${itemsRow}`).border = thin
   }

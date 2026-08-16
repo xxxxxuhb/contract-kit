@@ -8,8 +8,8 @@ Headless contract template runtime for Word / Excel: the kernel owns field defin
 
 | Scenario | Who does what |
 |----------|----------------|
-| Fill a purchase / sales contract **on the original layout** | Legal designs Word/Excel with `{{partyA}}`, `{{items.qty:number}}`; staff type into the document in the browser instead of a separate form |
-| Publish a template | Ops uploads `.docx` / `.xlsx`; backend (or a publish script) `load`s markers, adds label / required / options, stores **definition** |
+| Fill a purchase / sales contract **on the original layout** | Legal designs Word/Excel with `{{partyA}}`, `{{items.qty}}`; staff type into the document in the browser instead of a separate form |
+| Publish a template | Ops uploads `.docx` / `.xlsx`; backend (or a publish script) `load`s markers, adds type / label / required / options / outputFormat, stores **definition** |
 | Drafts and resume | Open a published contract: fetch original file + definition + last `data`, then `hydrate` |
 | Hand off / archive | Browser `export`s a filled Word/Excel; PDF is a second pass over the **already exported** file |
 | Batch fill (no preview) | Server runs kernel only: `hydrate` + `setData` + `export`, no DOM |

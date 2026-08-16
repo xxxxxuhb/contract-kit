@@ -1,3 +1,5 @@
+export { formatData, formatFieldValue } from './format'
+export type { FormatTarget } from './format'
 export { createKernel } from './kernel'
 export {
   aggregateMarkerFields,
@@ -27,6 +29,7 @@ export type {
   DocxPreview,
   Field,
   FieldColumn,
+  FieldFormatter,
   FieldOption,
   FieldRules,
   FieldType,

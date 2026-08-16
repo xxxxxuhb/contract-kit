@@ -2,7 +2,7 @@
   "version": 1,
   "source": {
     "kind": "docx",
-    "hash": "0f9b85fdce2a5ab1cfd0ec3fcf483a965d09a7b9894b0a3881786a054f2745e5"
+    "hash": "21277740fa0a4b9140e96ebe2edddd5cac480fe8cf76ce9093f1f0e2b2754b36"
   },
   "fields": [
     {
@@ -33,7 +33,8 @@
               "value": "service",
               "label": "服务"
             }
-          ]
+          ],
+          "outputFormat": "label"
         },
         {
           "name": "qty",
@@ -43,14 +44,15 @@
         {
           "name": "unitPrice",
           "type": "number",
-          "label": "单价"
+          "label": "单价",
+          "outputFormat": "#,##0.00"
         }
       ],
       "anchor": {
         "kind": "marker",
         "name": "items"
       },
-      "id": "fbc945f1-598c-4f36-ad68-635a92816234",
+      "id": "22aff0e5-b1b2-4762-b12d-096962d4a6b7",
       "required": true
     },
     {
@@ -61,7 +63,7 @@
         "kind": "marker",
         "name": "contractNo"
       },
-      "id": "df550fdf-bf05-466d-a4b7-b49754c08a0f",
+      "id": "7b74b57a-9428-44c6-9b10-add695ece592",
       "required": true
     },
     {
@@ -72,7 +74,7 @@
         "kind": "marker",
         "name": "signPlace"
       },
-      "id": "21159e3f-1234-46d6-a953-edd669a3d98b"
+      "id": "3f9edbb0-7825-4d29-895c-164cdb931802"
     },
     {
       "name": "partyA",
@@ -82,7 +84,7 @@
         "kind": "marker",
         "name": "partyA"
       },
-      "id": "783ee595-2653-4b60-98e5-66ede3bb5af8",
+      "id": "919b7e65-42ca-443f-90f3-2865ca6c930e",
       "required": true
     },
     {
@@ -93,7 +95,7 @@
         "kind": "marker",
         "name": "partyAAddress"
       },
-      "id": "cf73b063-c14a-459f-92c4-f3c4d52f2d3c"
+      "id": "46b6d06e-f5eb-4fa6-ab64-47216a4e8429"
     },
     {
       "name": "partyAContact",
@@ -103,7 +105,7 @@
         "kind": "marker",
         "name": "partyAContact"
       },
-      "id": "b2342ced-5777-4ec6-8fdf-3a618d45a260"
+      "id": "45d4228c-c29a-413d-a2ab-1ddc9d929ce3"
     },
     {
       "name": "partyB",
@@ -113,7 +115,7 @@
         "kind": "marker",
         "name": "partyB"
       },
-      "id": "95c9eeaf-36e7-4698-af21-a764d307705d",
+      "id": "6c55072b-c18f-4807-b54d-2bfde3fb890f",
       "required": true
     },
     {
@@ -124,7 +126,7 @@
         "kind": "marker",
         "name": "partyBAddress"
       },
-      "id": "89b05b16-0f61-47bd-a04c-d2c4da34a6a5"
+      "id": "05e582f6-ef06-4e38-9733-ff0f304dc8d9"
     },
     {
       "name": "partyBContact",
@@ -134,7 +136,7 @@
         "kind": "marker",
         "name": "partyBContact"
       },
-      "id": "c32c7f5f-bd56-4d7c-889d-2f5ead776714"
+      "id": "bbee1d16-0a00-457e-9c54-e829815281f4"
     },
     {
       "name": "amount",
@@ -144,7 +146,8 @@
         "kind": "marker",
         "name": "amount"
       },
-      "id": "1de793be-ac6c-49fa-861a-6fbfc7538943"
+      "id": "9621383f-f39c-40d8-a63e-5932c0c30e17",
+      "outputFormat": "#,##0.00"
     },
     {
       "name": "payMethod",
@@ -154,7 +157,8 @@
         "kind": "marker",
         "name": "payMethod"
       },
-      "id": "cbcd72d9-d5bc-4a92-bf55-ba50ff1040a8",
+      "id": "0c42950a-7348-4c2c-bd6f-237c73cd7fbf",
+      "outputFormat": "label",
       "options": [
         {
           "value": "wire",
@@ -178,7 +182,8 @@
         "kind": "marker",
         "name": "deliveryRegions"
       },
-      "id": "ae02ba2e-f163-4ce8-bec0-a3ba13d8f0d2",
+      "id": "3ed7d9f6-328e-4dfd-8c71-b77d7e0b6613",
+      "outputFormat": "label",
       "options": [
         {
           "value": "east",
@@ -206,7 +211,7 @@
         "kind": "marker",
         "name": "payTerm"
       },
-      "id": "0f4bf8f4-a6aa-4fd5-b2cc-bf854af50643"
+      "id": "4ffbc16d-8db7-4c06-a710-2844698e9a32"
     },
     {
       "name": "deliveryDate",
@@ -216,7 +221,8 @@
         "kind": "marker",
         "name": "deliveryDate"
       },
-      "id": "bd51139f-7c09-4f38-ba97-d69737778499"
+      "id": "fb5f85d5-066c-47e9-a079-2d404e1a68b5",
+      "outputFormat": "DD日MM月YYYY年"
     },
     {
       "name": "deliveryPlace",
@@ -226,7 +232,7 @@
         "kind": "marker",
         "name": "deliveryPlace"
       },
-      "id": "790fad61-6106-45a4-8286-1011b8f728c6"
+      "id": "4eaf6001-dd08-4145-acfe-55fa965cde5d"
     },
     {
       "name": "warranty",
@@ -236,7 +242,7 @@
         "kind": "marker",
         "name": "warranty"
       },
-      "id": "7cc94ac5-0961-426d-83ee-3b7212b98797"
+      "id": "481bedd6-f454-48e7-995d-1a9b4372c61d"
     },
     {
       "name": "signDate",
@@ -246,7 +252,8 @@
         "kind": "marker",
         "name": "signDate"
       },
-      "id": "14be63b4-f252-4a33-b73b-138c0ebe8b2a"
+      "id": "abfcc840-8c9a-4dce-bb20-b8f60561af4a",
+      "outputFormat": "DD日MM月YYYY年"
     },
     {
       "name": "note",
@@ -256,7 +263,7 @@
         "kind": "marker",
         "name": "note"
       },
-      "id": "f89eb226-c29e-4b63-839d-52a58372f34f"
+      "id": "173df43e-6d78-4641-8a07-9d1e0d3666bb"
     },
     {
       "name": "filledAt",
@@ -266,7 +273,8 @@
         "kind": "marker",
         "name": "filledAt"
       },
-      "id": "cb6f6596-4118-4978-b8ef-45881391ce7d"
+      "id": "1aad7d09-1a56-4628-88de-afc269a3ba2d",
+      "outputFormat": "YYYY年MM月DD日"
     },
     {
       "name": "stamp",
@@ -276,7 +284,7 @@
         "kind": "marker",
         "name": "stamp"
       },
-      "id": "537e409a-9719-43c1-b2cb-9321019a1d3f"
+      "id": "36514f54-73c2-4242-8106-87db08412e65"
     }
   ]
 }
