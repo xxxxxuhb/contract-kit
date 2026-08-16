@@ -34,7 +34,12 @@ function run(command, args, env = {}) {
 rmSync(outRoot, { recursive: true, force: true })
 mkdirSync(outRoot, { recursive: true })
 
-run('npm', ['run', 'templates'])
+// CI can skip: public/templates are committed; `templates` needs package dist/.
+if (process.env.SKIP_TEMPLATES === '1') {
+  console.log('Skipping templates (using committed public/templates)')
+} else {
+  run('npm', ['run', 'templates'])
+}
 
 run('npm', ['run', 'build', '-w', '@contract-kit/example-native-ui'], {
   EXAMPLE_BASE: `${baseRoot}native/`,

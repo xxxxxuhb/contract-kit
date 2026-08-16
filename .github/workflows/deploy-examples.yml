@@ -32,6 +32,8 @@ jobs:
         env:
           # Project Pages: https://<user>.github.io/contract-kit/
           EXAMPLES_BASE: /contract-kit/
+          # public/templates already in git; regenerating needs package dist/
+          SKIP_TEMPLATES: '1'
         run: node scripts/build-examples-site.mjs
 
       - uses: actions/upload-pages-artifact@v3
