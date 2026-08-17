@@ -2,6 +2,14 @@
 
 本仓库按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 记录公开 API 变化。版本遵循 semver；`0.x` 仍可能有破坏性调整。
 
+## 0.1.4 — 2026-08-17
+
+伞包 `paperfill@0.1.4`，`@paperfill/docx@0.1.2`。
+
+### Changed
+
+- `mountDocxPreview` 默认 `ignoreWidth` / `ignoreHeight: true`，渲染后把 `section.docx` 拉成 `width: 100%`，避免 A4 `595.3pt` 留白。要页框时传 `render: { inWrapper: true, ignoreWidth: false, ignoreHeight: false }`。
+
 ## 0.1.3 — 2026-08-17
 
 伞包 `paperfill@0.1.3`，`@paperfill/docx@0.1.1`。

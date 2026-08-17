@@ -46,8 +46,9 @@ export type MountDocxPreviewOptions = {
   /** Where docx-preview injects CSS. Defaults to the body container. */
   styleContainer?: HTMLElement
   /**
-   * Passed to docx-preview. Default `inWrapper: false` so only document
-   * content is rendered into the container you pass (your page owns chrome).
+   * Passed to docx-preview. Defaults fill the host: `inWrapper: false`,
+   * `ignoreWidth` / `ignoreHeight: true`. Set `inWrapper: true` and
+   * `ignoreWidth: false` for A4 page chrome.
    */
   render?: DocxRenderOptions
 }
@@ -180,6 +181,24 @@ export function shouldSkipUnexpandedTableParent(text: string): boolean {
   )
 }
 
+/** Stretch Word page boxes to the host so A4 `595.3pt` does not leave empty gray gutters. */
+function fitDocxToContainer(root: HTMLElement) {
+  const wrap = root.querySelector('.docx-wrapper')
+  if (wrap instanceof HTMLElement) {
+    wrap.style.background = 'transparent'
+    wrap.style.padding = '0'
+    wrap.style.alignItems = 'stretch'
+  }
+  for (const section of root.querySelectorAll('section.docx')) {
+    if (!(section instanceof HTMLElement)) continue
+    section.style.width = '100%'
+    section.style.maxWidth = '100%'
+    section.style.minHeight = '0'
+    section.style.boxShadow = 'none'
+    section.style.marginBottom = '0'
+  }
+}
+
 /**
  * Render a .docx buffer into a container and mount fields into {{marker}} slots.
  * Layout comes from docx-preview; business only supplies FieldMounter.
@@ -268,14 +287,15 @@ export function mountDocxPreview(container: HTMLElement, options: MountDocxPrevi
     const copy = buffer.slice()
     await renderAsync(copy, container, styleContainer, {
       inWrapper: false,
-      ignoreWidth: false,
-      ignoreHeight: false,
+      ignoreWidth: true,
+      ignoreHeight: true,
       breakPages: true,
       renderHeaders: true,
       renderFooters: true,
       ...render,
     })
     if (token !== generation) return
+    fitDocxToContainer(container)
     hydrate(container)
   }
 

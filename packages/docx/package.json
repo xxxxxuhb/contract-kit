@@ -1,6 +1,6 @@
 {
   "name": "@paperfill/docx",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Word (.docx) adapter and preview layout for paperfill",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
