@@ -4,6 +4,7 @@ import { test } from 'node:test'
 import ExcelJS from 'exceljs'
 import { createKernel } from '../../kernel/src/index'
 import { XlsxAdapter } from '../src/index'
+import { usedSheetSize } from '../src/used-range'
 
 function sha(buffer: Uint8Array): string {
   return createHash('sha256').update(buffer).digest('hex')
@@ -49,6 +50,7 @@ test('load scans cell markers into form schema', async () => {
   if (preview?.kind === 'xlsx') {
     const cell = preview.sheets[0].cells[0][1]
     assert.deepEqual(cell.inlines, [{ type: 'field', name: 'partyA' }])
+    assert.equal(preview.sheets[0].cells.length, 2)
   }
 })
 
@@ -187,6 +189,44 @@ test('xlsx discovers table fields and expands rows on export', async () => {
   assert.equal(String(sheet.getCell('A3').value), '2')
   assert.equal(String(sheet.getCell('B3').value), '橙')
   assert.equal(String(sheet.getCell('B4').value), 'ok')
+})
+
+test('usedSheetSize ignores trailing empty rows and blank cells', () => {
+  const workbook = new ExcelJS.Workbook()
+  const sheet = workbook.addWorksheet('合同')
+  sheet.getCell('A1').value = '甲方'
+  sheet.getCell('B1').value = '{{partyA}}'
+  sheet.getCell('A3').value = '备注'
+  sheet.getRow(80).height = 18
+  sheet.getCell('Z1').value = '   '
+  assert.ok(sheet.rowCount >= 80)
+  assert.deepEqual(usedSheetSize(sheet), { rows: 3, cols: 2 })
+})
+
+test('getPreview drops trailing empty rows and columns', async () => {
+  const workbook = new ExcelJS.Workbook()
+  const sheet = workbook.addWorksheet('合同')
+  sheet.getCell('A1').value = '甲方'
+  sheet.getCell('B1').value = '{{partyA}}'
+  sheet.getCell('A3').value = '备注'
+  sheet.getRow(80).height = 18
+  sheet.getCell('Z10').value = '   '
+  const buffer = new Uint8Array(await workbook.xlsx.writeBuffer())
+
+  const kernel = createKernel({ adapter: new XlsxAdapter() })
+  await kernel.dispatch({ type: 'load', source: { kind: 'xlsx', buffer } })
+  const preview = kernel.getPreview()
+  assert.equal(preview?.kind, 'xlsx')
+  if (preview?.kind !== 'xlsx') return
+
+  const loaded = new ExcelJS.Workbook()
+  await loaded.xlsx.load(buffer as unknown as ExcelJS.Buffer)
+  const loadedSheet = loaded.getWorksheet('合同')!
+  assert.ok(loadedSheet.rowCount > 3)
+  assert.ok(loadedSheet.columnCount > 2)
+  assert.equal(preview.sheets[0].cells.length, 3)
+  assert.equal(preview.sheets[0].colWidths.length, 2)
+  assert.deepEqual(preview.sheets[0].cells[1][0].inlines, [])
 })
 
 test('xlsx keeps a blank placeholder row when the table is empty', async () => {

@@ -297,5 +297,5 @@ sequenceDiagram
 
 - [x] **循环明细表**：`{{items.col}}` 行模板 + `data.items[]`；docx/xlsx bind 扩行；预览按 data 行数渲染（空表一行占位）；行数由 `insertRow` / `removeRow` / `setValue` 控制。
 - [x] **Nuxt 示例**：`npm run example`（`/` 原生 UI + `/custom` Element Plus）。
-- [x] **Excel 布局进 xlsx**：`mountXlsxPreview` + `getPreview` 单元格颜色。
+- [x] **Excel 布局进 xlsx**：`mountXlsxPreview` + `getPreview` 单元格颜色；预览裁末尾幽灵行/列。
 - [x] **Word 布局进 docx**：`mountDocxPreview`（demo `DocxLayout` 仅为薄宿主）。

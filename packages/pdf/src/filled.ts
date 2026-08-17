@@ -61,6 +61,19 @@ function cellDisplay(value: ExcelJS.CellValue): string {
   return ''
 }
 
+function usedSheetSize(sheet: ExcelJS.Worksheet): { rows: number; cols: number } {
+  let rows = 0
+  let cols = 0
+  sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      if (cellDisplay(cell.value).trim() === '') return
+      rows = Math.max(rows, rowNumber)
+      cols = Math.max(cols, colNumber)
+    })
+  })
+  return { rows: Math.max(rows, 1), cols: Math.max(cols, 1) }
+}
+
 async function mountFilledDocx(buffer: Uint8Array, host: HTMLElement): Promise<void> {
   await renderAsync(buffer.slice(), host, undefined, {
     inWrapper: true,
@@ -91,9 +104,10 @@ async function mountFilledXlsx(buffer: Uint8Array, host: HTMLElement): Promise<v
 
     const table = document.createElement('table')
     table.style.cssText = 'border-collapse:collapse;width:100%;font:14px/1.5 sans-serif;'
-    for (let r = 1; r <= (sheet.rowCount || 0); r++) {
+    const { rows: rowCount, cols: colCount } = usedSheetSize(sheet)
+    for (let r = 1; r <= rowCount; r++) {
       const tr = document.createElement('tr')
-      for (let c = 1; c <= (sheet.columnCount || 0); c++) {
+      for (let c = 1; c <= colCount; c++) {
         const td = document.createElement('td')
         td.textContent = cellDisplay(sheet.getCell(r, c).value)
         td.style.cssText = 'border:1px solid #ccc;padding:6px 8px;min-width:80px;vertical-align:top;'
@@ -165,9 +179,10 @@ export async function printFilledDocument(input: FilledExportInput): Promise<voi
         wrap.appendChild(title)
         const table = doc.createElement('table')
         table.style.cssText = 'border-collapse:collapse;width:100%;font:14px/1.5 sans-serif;'
-        for (let r = 1; r <= (sheet.rowCount || 0); r++) {
+        const { rows: rowCount, cols: colCount } = usedSheetSize(sheet)
+        for (let r = 1; r <= rowCount; r++) {
           const tr = doc.createElement('tr')
-          for (let c = 1; c <= (sheet.columnCount || 0); c++) {
+          for (let c = 1; c <= colCount; c++) {
             const td = doc.createElement('td')
             td.textContent = cellDisplay(sheet.getCell(r, c).value)
             td.style.cssText = 'border:1px solid #ccc;padding:6px 8px;'

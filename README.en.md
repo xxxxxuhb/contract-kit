@@ -139,7 +139,7 @@ Styles stay on subpaths. Vue / React helpers use `paperfill/vue` or `paperfill/r
 | **Runtime** | `kernel` / `docx` / `xlsx` work in Node and browsers; `ui`, `mountDocxPreview`, `mountXlsxPreview`, and `pdf` need a **browser DOM** — do not call them on a pure SSR path |
 | **PDF** | `exportFilledDocument` is **browser-only**; default `html2canvas`, not a server-side Office→PDF engine; `canvas-draw-element` needs a Chromium experimental flag |
 | **Word preview** | `mountDocxPreview` uses `docx-preview`; not pixel-identical to desktop Word |
-| **Excel preview** | `getPreview` / `mountXlsxPreview` support fill/font colors (`argb`; theme colors approximated); no gradients, conditional formatting, charts, etc. |
+| **Excel preview** | `getPreview` / `mountXlsxPreview` support fill/font colors (`argb`; theme colors approximated); trailing empty rows/columns are dropped; no gradients, conditional formatting, charts, etc. |
 | **Image fields** | data URL; `bind`/`export` embeds a Word drawing / Excel cell image (~120px, no crop/anchor tuning) |
 | **Non-goals** | Full Office editor, server-grade layout engines; `ui` stays framework-free DOM, Vue/React packages only subscribe |
 

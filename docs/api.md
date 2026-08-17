@@ -343,6 +343,8 @@ if (preview?.kind === 'xlsx') {
 
 `XlsxPreviewCell.style`（可选）：`background` / `color`（`#rrggbb`）、`fontWeight`。`argb` 直出；仅有 `theme` 索引时用默认 Office 主题近似色。不覆盖渐变/条件格式。
 
+`getPreview()` 默认裁掉末尾没有内容/样式的幽灵行和幽灵列（ExcelJS `rowCount` 常被空行撑大）；中间空行保留。导出文件不改。
+
 ---
 
 ## 原生字段 UI（可选）

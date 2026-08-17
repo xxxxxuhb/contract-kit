@@ -17,6 +17,7 @@ import {
 } from '@paperfill/kernel'
 import ExcelJS from 'exceljs'
 import { readCellStyle } from './cell-style'
+import { cellText, parseMerge, usedSheetSize } from './used-range'
 
 export {
   expandXlsxSheets,
@@ -28,46 +29,6 @@ export {
   type XlsxPreviewHandle,
 } from './mount-preview'
 export { excelColorToCss, readCellStyle } from './cell-style'
-
-function columnNumber(address: string): number {
-  const letters = address.match(/^[A-Z]+/)?.[0] ?? 'A'
-  let n = 0
-  for (const ch of letters) n = n * 26 + (ch.charCodeAt(0) - 64)
-  return n
-}
-
-function rowNumber(address: string): number {
-  return Number(address.match(/\d+$/)?.[0] ?? 1)
-}
-
-function parseMerge(range: string): { r1: number; c1: number; r2: number; c2: number } | null {
-  const [start, end] = range.split(':')
-  if (!start || !end) return null
-  return {
-    r1: rowNumber(start),
-    c1: columnNumber(start),
-    r2: rowNumber(end),
-    c2: columnNumber(end),
-  }
-}
-
-function cellText(value: ExcelJS.CellValue): string {
-  if (value == null) return ''
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    return String(value)
-  }
-  if (value instanceof Date) return value.toISOString().slice(0, 10)
-  if (typeof value === 'object' && 'richText' in value && Array.isArray(value.richText)) {
-    return value.richText.map((part) => part.text).join('')
-  }
-  if (typeof value === 'object' && 'text' in value && typeof value.text === 'string') {
-    return value.text
-  }
-  if (typeof value === 'object' && 'result' in value) {
-    return cellText(value.result as ExcelJS.CellValue)
-  }
-  return ''
-}
 
 function asRow(value: unknown): Record<string, unknown> {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -176,8 +137,7 @@ export class XlsxAdapter implements DocumentAdapter {
     return {
       kind: 'xlsx',
       sheets: this.workbook.worksheets.map((sheet) => {
-        const rowCount = Math.max(sheet.rowCount, 1)
-        const colCount = Math.max(sheet.columnCount, 1)
+        const { rows: rowCount, cols: colCount } = usedSheetSize(sheet)
         const mergeList = ((sheet as unknown as { model?: { merges?: string[] } }).model?.merges ?? [])
           .map(parseMerge)
           .filter((item): item is NonNullable<typeof item> => Boolean(item))
@@ -261,7 +221,7 @@ export class XlsxAdapter implements DocumentAdapter {
     if (this.findCellByMarker(field.name)) return
     const sheet = this.workbook.worksheets[0]
     if (!sheet) return
-    const row = sheet.rowCount + 1
+    const row = usedSheetSize(sheet).rows + 1
     sheet.getCell(row, 1).value = this.markerText(field)
     await this.persistTemplate()
   }

@@ -2,6 +2,14 @@
 
 本仓库按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 记录公开 API 变化。版本遵循 semver；`0.x` 仍可能有破坏性调整。
 
+## 0.1.5 — 2026-08-17
+
+伞包 `paperfill@0.1.5`，`@paperfill/xlsx@0.1.1`，`@paperfill/pdf@0.1.1`。
+
+### Changed
+
+- Excel 预览默认裁掉末尾幽灵行/列（ExcelJS `rowCount` 空行），中间空行保留；导出 `.xlsx` 不改。PDF 的 xlsx 渲染同样裁。
+
 ## 0.1.4 — 2026-08-17
 
 伞包 `paperfill@0.1.4`，`@paperfill/docx@0.1.2`。
