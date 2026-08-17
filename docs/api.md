@@ -306,7 +306,7 @@ interface DocumentAdapter {
 | 类 / API | 导入 | 说明 |
 |----------|------|------|
 | `DocxAdapter` | `paperfill` | OOXML / JSZip；按 `{{marker}}` bind |
-| `mountDocxPreview` | `paperfill` | 用 `docx-preview` 渲原 buffer，扫 `{{marker}}` 挂槽位；业务只注入 `mountField` |
+| `mountDocxPreview` | `paperfill` | 把 `.docx` 渲进传入的 `container`，扫 `{{marker}}` 挂槽位；默认不包 `docx-preview` 外层页框（`inWrapper: false`） |
 | `XlsxAdapter` | `paperfill` | ExcelJS；单元格文本中的标记；`getPreview` 含 `style`（背景/字体色等） |
 | `mountXlsxPreview` | `paperfill` | 把 `getPreview()` 的 sheets 渲成表格 DOM，业务只注入 `mountField` |
 
@@ -319,6 +319,8 @@ const handle = mountDocxPreview(container, {
   validation: kernel.validate(),
   mountField: myMounter,
   onChange: (path, value) => kernel.dispatch({ type: 'setValue', path, value }),
+  // 默认 inWrapper: false，正文进 container；需要 docx-preview 页框时再开
+  // render: { inWrapper: true },
 })
 ```
 

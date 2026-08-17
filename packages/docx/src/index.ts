@@ -27,6 +27,7 @@ export {
   type DocxFieldMountContext,
   type DocxFieldMounter,
   type DocxPreviewHandle,
+  type DocxRenderOptions,
   type MountDocxPreviewOptions,
 } from './mount-preview'
 

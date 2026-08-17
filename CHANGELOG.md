@@ -2,6 +2,14 @@
 
 本仓库按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 记录公开 API 变化。版本遵循 semver；`0.x` 仍可能有破坏性调整。
 
+## 0.1.3 — 2026-08-17
+
+伞包 `paperfill@0.1.3`，`@paperfill/docx@0.1.1`。
+
+### Changed
+
+- `mountDocxPreview` 默认 `inWrapper: false`：正文渲进传入的 `container`，不再套 `docx-preview` 灰底页框。需要页框时传 `render: { inWrapper: true }`。可另传 `styleContainer`。
+
 ## 0.1.2 — 2026-08-16
 
 伞包 `paperfill@0.1.2`，内核 `@paperfill/kernel@0.1.1`。

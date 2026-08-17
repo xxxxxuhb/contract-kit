@@ -26,12 +26,30 @@ export type DocxFieldHandle = {
 
 export type DocxFieldMounter = (container: HTMLElement, ctx: DocxFieldMountContext) => DocxFieldHandle
 
+/** Subset of docx-preview `renderAsync` options. */
+export type DocxRenderOptions = {
+  inWrapper?: boolean
+  ignoreWidth?: boolean
+  ignoreHeight?: boolean
+  breakPages?: boolean
+  renderHeaders?: boolean
+  renderFooters?: boolean
+  className?: string
+}
+
 export type MountDocxPreviewOptions = {
   buffer: Uint8Array
   fields: FormSchemaField[]
   validation?: ValidationResult
   mountField: DocxFieldMounter
   onChange: (path: string, value: unknown) => void
+  /** Where docx-preview injects CSS. Defaults to the body container. */
+  styleContainer?: HTMLElement
+  /**
+   * Passed to docx-preview. Default `inWrapper: false` so only document
+   * content is rendered into the container you pass (your page owns chrome).
+   */
+  render?: DocxRenderOptions
 }
 
 export type DocxPreviewHandle = {
@@ -172,6 +190,8 @@ export function mountDocxPreview(container: HTMLElement, options: MountDocxPrevi
   let validation = options.validation ?? { ok: true, issues: [] }
   let mountField = options.mountField
   let onChange = options.onChange
+  let styleContainer = options.styleContainer
+  let render = options.render
 
   const slots: HTMLElement[] = []
   const handles = new Map<HTMLElement, DocxFieldHandle>()
@@ -246,13 +266,14 @@ export function mountDocxPreview(container: HTMLElement, options: MountDocxPrevi
     destroySlots()
     container.replaceChildren()
     const copy = buffer.slice()
-    await renderAsync(copy, container, undefined, {
-      inWrapper: true,
+    await renderAsync(copy, container, styleContainer, {
+      inWrapper: false,
       ignoreWidth: false,
       ignoreHeight: false,
       breakPages: true,
       renderHeaders: true,
       renderFooters: true,
+      ...render,
     })
     if (token !== generation) return
     hydrate(container)
@@ -268,6 +289,8 @@ export function mountDocxPreview(container: HTMLElement, options: MountDocxPrevi
       if (patch.validation) validation = patch.validation
       if (patch.mountField) mountField = patch.mountField
       if (patch.onChange) onChange = patch.onChange
+      if (patch.styleContainer) styleContainer = patch.styleContainer
+      if (patch.render) render = { ...render, ...patch.render }
       const nextSig = tableSignature(fields)
       if (patch.buffer || nextSig !== prevSig) {
         await paint()
