@@ -1,5 +1,7 @@
 import {
   aggregateMarkerFields,
+  createMarkerSyntax,
+  normalizeMarkers,
   parseDataUrl,
   parseMarkers,
   parseTableColumnRef,
@@ -12,6 +14,7 @@ import {
   type DiscoveredField,
   type DocumentAdapter,
   type Field,
+  type MarkerDelimiters,
   type PreviewModel,
   type Source,
 } from '@paperfill/kernel'
@@ -27,6 +30,8 @@ export {
   type XlsxFieldMountContext,
   type XlsxFieldMounter,
   type XlsxPreviewHandle,
+  type XlsxPreviewPlugin,
+  type XlsxPreviewPluginContext,
 } from './mount-preview'
 export { excelColorToCss, readCellStyle } from './cell-style'
 
@@ -45,15 +50,20 @@ function rowPlainText(row: ExcelJS.Row): string {
   return parts.join('\n')
 }
 
-function expandSheetTables(sheet: ExcelJS.Worksheet, data: Record<string, unknown>): void {
+function expandSheetTables(
+  sheet: ExcelJS.Worksheet,
+  data: Record<string, unknown>,
+  markers?: MarkerDelimiters | null,
+): void {
+  const syntax = createMarkerSyntax(markers)
   type Hit = { tableName: string; rowNumber: number }
   const hits: Hit[] = []
   const seenTables = new Set<string>()
   sheet.eachRow((row, rowNumber) => {
     const text = rowPlainText(row)
-    for (const tableName of tableNamesInText(text)) {
+    for (const tableName of tableNamesInText(text, markers)) {
       if (seenTables.has(tableName)) continue
-      if (!textHasTableMarkers(text, tableName)) continue
+      if (!textHasTableMarkers(text, tableName, markers)) continue
       seenTables.add(tableName)
       hits.push({ tableName, rowNumber })
     }
@@ -71,12 +81,16 @@ function expandSheetTables(sheet: ExcelJS.Worksheet, data: Record<string, unknow
       const record = asRow(rows[i])
       excelRow.eachCell({ includeEmpty: true }, (cell) => {
         const text = cellText(cell.value)
-        if (!text.includes('{{')) return
-        const next = replaceRowMarkers(text, hit.tableName, record, i)
+        if (!syntax.contains(text)) return
+        const next = replaceRowMarkers(text, hit.tableName, record, i, markers)
         if (next !== text) cell.value = next
       })
     }
   }
+}
+
+export type XlsxAdapterOptions = {
+  markers?: MarkerDelimiters
 }
 
 export class XlsxAdapter implements DocumentAdapter {
@@ -84,6 +98,15 @@ export class XlsxAdapter implements DocumentAdapter {
   private original: Uint8Array | null = null
   private workbook: ExcelJS.Workbook | null = null
   private fields = new Map<string, Field>()
+  private markers: MarkerDelimiters
+
+  constructor(options?: XlsxAdapterOptions) {
+    this.markers = normalizeMarkers(options?.markers)
+  }
+
+  setMarkers(markers: MarkerDelimiters): void {
+    this.markers = normalizeMarkers(markers)
+  }
 
   async load(source: Source): Promise<void> {
     if (source.kind !== 'xlsx') {
@@ -104,9 +127,9 @@ export class XlsxAdapter implements DocumentAdapter {
       sheet.eachRow((row) => {
         row.eachCell((cell) => {
           const text = cellText(cell.value)
-          if (!text.includes('{{')) return
+          if (!createMarkerSyntax(this.markers).contains(text)) return
           texts.push(text)
-          for (const marker of parseMarkers(text)) {
+          for (const marker of parseMarkers(text, this.markers)) {
             const ref = parseTableColumnRef(marker.name)
             const key = ref ? ref.table : marker.name
             if (!firstAnchor.has(key)) {
@@ -116,7 +139,7 @@ export class XlsxAdapter implements DocumentAdapter {
         })
       })
     }
-    return aggregateMarkerFields(parseMarkers(texts.join('\n'))).map((field) => {
+    return aggregateMarkerFields(parseMarkers(texts.join('\n'), this.markers)).map((field) => {
       const anchor = firstAnchor.get(field.name)
       return {
         name: field.name,
@@ -172,7 +195,7 @@ export class XlsxAdapter implements DocumentAdapter {
             const text = cellText(excelCell.value)
             const merged = span.get(key)
             row.push({
-              inlines: splitByMarkers(text).map((segment) =>
+              inlines: splitByMarkers(text, this.markers).map((segment) =>
                 segment.kind === 'text'
                   ? { type: 'text' as const, text: segment.text }
                   : { type: 'field' as const, name: segment.name },
@@ -190,12 +213,12 @@ export class XlsxAdapter implements DocumentAdapter {
   }
 
   private markerText(field: Field) {
-    return field.type === 'text' ? `{{${field.name}}}` : `{{${field.name}:${field.type}}}`
+    return createMarkerSyntax(this.markers).wrap(field.name, field.type)
   }
 
   private findCellByMarker(name: string): ExcelJS.Cell | null {
     if (!this.workbook) return null
-    const re = new RegExp(`\\{\\{\\s*${name}(?:\\s*:\\s*[A-Za-z_][A-Za-z0-9_]*)?\\s*\\}\\}`)
+    const re = createMarkerSyntax(this.markers).namedRegex(name, '')
     for (const sheet of this.workbook.worksheets) {
       let found: ExcelJS.Cell | null = null
       sheet.eachRow((row) => {
@@ -245,10 +268,7 @@ export class XlsxAdapter implements DocumentAdapter {
     const cell = this.findCellByMarker(field.name)
     if (!cell) return
     const text = cellText(cell.value)
-    cell.value = text.replace(
-      new RegExp(`\\{\\{\\s*${field.name}(?:\\s*:\\s*[A-Za-z_][A-Za-z0-9_]*)?\\s*\\}\\}`, 'g'),
-      '',
-    )
+    cell.value = text.replace(createMarkerSyntax(this.markers).namedRegex(field.name), '')
     await this.persistTemplate()
   }
 
@@ -257,13 +277,13 @@ export class XlsxAdapter implements DocumentAdapter {
     const workbook = new ExcelJS.Workbook()
     await workbook.xlsx.load(this.original as unknown as ExcelJS.Buffer)
     for (const sheet of workbook.worksheets) {
-      expandSheetTables(sheet, data)
+      expandSheetTables(sheet, data, this.markers)
       sheet.eachRow((row) => {
         row.eachCell((cell) => {
           const text = cellText(cell.value)
-          if (!text.includes('{{')) return
-          const imageMarker = parseMarkers(text).find((marker) => parseDataUrl(data[marker.name]))
-          if (imageMarker && parseMarkers(text).length === 1 && text.trim() === imageMarker.raw) {
+          if (!createMarkerSyntax(this.markers).contains(text)) return
+          const imageMarker = parseMarkers(text, this.markers).find((marker) => parseDataUrl(data[marker.name]))
+          if (imageMarker && parseMarkers(text, this.markers).length === 1 && text.trim() === imageMarker.raw) {
             const parsed = parseDataUrl(data[imageMarker.name])
             if (parsed) {
               const imageId = workbook.addImage({
@@ -278,7 +298,7 @@ export class XlsxAdapter implements DocumentAdapter {
               return
             }
           }
-          const next = replaceMarkers(text, data, { missing: 'blank' })
+          const next = replaceMarkers(text, data, { missing: 'blank' }, this.markers)
           if (next !== text) cell.value = next
         })
       })

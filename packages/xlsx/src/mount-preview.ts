@@ -34,6 +34,11 @@ export type MountXlsxPreviewOptions = {
   validation?: ValidationResult
   mountField: XlsxFieldMounter
   onChange: (path: string, value: unknown) => void
+  /**
+   * Preview-only hooks. Does not replace `mountField`.
+   * `afterSheets` runs after row expand, before painting tables.
+   */
+  plugins?: XlsxPreviewPlugin[]
 }
 
 export type XlsxPreviewHandle = {
@@ -76,6 +81,17 @@ function rowTableName(row: XlsxPreviewCell[]): string | null {
     }
   }
   return null
+}
+
+export type XlsxPreviewPluginContext = {
+  fields: FormSchemaField[]
+}
+
+export interface XlsxPreviewPlugin {
+  /** After repeating-row expand, before painting tables. Return sheets to replace. */
+  afterSheets?(sheets: XlsxPreviewSheet[], ctx: XlsxPreviewPluginContext): XlsxPreviewSheet[] | void
+  /** After tables are painted into `root`. */
+  afterTable?(root: HTMLElement, ctx: XlsxPreviewPluginContext): void
 }
 
 export function expandXlsxSheets(
@@ -164,6 +180,7 @@ export function mountXlsxPreview(container: HTMLElement, options: MountXlsxPrevi
   let validation = options.validation ?? { ok: true, issues: [] }
   let mountField = options.mountField
   let onChange = options.onChange
+  let plugins = options.plugins ?? []
 
   const handles = new Map<HTMLElement, XlsxFieldHandle>()
 
@@ -188,7 +205,12 @@ export function mountXlsxPreview(container: HTMLElement, options: MountXlsxPrevi
 
   function paint() {
     clear()
-    const expanded = expandXlsxSheets(sheets, fields)
+    const ctx = { fields }
+    let expanded = expandXlsxSheets(sheets, fields)
+    for (const plugin of plugins) {
+      const next = plugin.afterSheets?.(expanded, ctx)
+      if (next) expanded = next
+    }
     for (const sheet of expanded) {
       const wrap = document.createElement('div')
       wrap.className = 'ck-xlsx-sheet'
@@ -237,6 +259,7 @@ export function mountXlsxPreview(container: HTMLElement, options: MountXlsxPrevi
       wrap.appendChild(table)
       container.appendChild(wrap)
     }
+    for (const plugin of plugins) plugin.afterTable?.(container, ctx)
   }
 
   paint()
@@ -248,6 +271,7 @@ export function mountXlsxPreview(container: HTMLElement, options: MountXlsxPrevi
       if (patch.validation) validation = patch.validation
       if (patch.mountField) mountField = patch.mountField
       if (patch.onChange) onChange = patch.onChange
+      if (patch.plugins) plugins = patch.plugins
       paint()
     },
     destroy() {

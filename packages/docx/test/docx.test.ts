@@ -173,3 +173,23 @@ test('DocxAdapter rejects a non-docx source', async () => {
     /only accepts docx/,
   )
 })
+
+test('custom marker delimiters discover and bind', async () => {
+  const buffer = await makeDocx(['甲方：[[partyA]] 忽略{{skip}}'])
+  const markers = { start: '[[', end: ']]' }
+  const kernel = createKernel({ adapter: new DocxAdapter({ markers }), markers })
+  await kernel.dispatch({ type: 'load', source: { kind: 'docx', buffer } })
+  assert.deepEqual(
+    kernel.getFormSchema().fields.map((f) => f.name),
+    ['partyA'],
+  )
+  assert.deepEqual(kernel.getDefinition()?.markers, markers)
+  await kernel.dispatch({ type: 'setValue', path: 'partyA', value: '星河' })
+  const result = await kernel.dispatch({ type: 'export' })
+  assert.equal(result.type, 'exported')
+  if (result.type !== 'exported') return
+  const xml = await readDocxDocumentXml(result.buffer)
+  assert.match(xml, /星河/)
+  assert.match(xml, /\{\{skip\}\}/)
+  assert.doesNotMatch(xml, /\[\[partyA\]\]/)
+})

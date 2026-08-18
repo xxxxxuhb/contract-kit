@@ -1,8 +1,10 @@
 import {
+  createMarkerSyntax,
   parseTableColumnRef,
   rowsForExpand,
   splitByMarkers,
   type FormSchemaField,
+  type MarkerDelimiters,
   type ValidationResult,
 } from '@paperfill/kernel'
 import { renderAsync } from 'docx-preview'
@@ -51,6 +53,13 @@ export type MountDocxPreviewOptions = {
    * `ignoreWidth: false` for A4 page chrome.
    */
   render?: DocxRenderOptions
+  /** Same delimiters as the kernel / adapter. Default `{{` / `}}`. */
+  markers?: MarkerDelimiters
+  /**
+   * Preview-only hooks. Does not replace `mountField`.
+   * Built-in `fitDocxToContainer` still runs before `afterHtml`.
+   */
+  plugins?: DocxPreviewPlugin[]
 }
 
 export type DocxPreviewHandle = {
@@ -103,7 +112,13 @@ export function resolveDocxSlot(
   return { field: { name, type: 'text' }, value: undefined, error }
 }
 
-export function rewriteTableMarkersInRow(row: Element, tableName: string, index: number) {
+export function rewriteTableMarkersInRow(
+  row: Element,
+  tableName: string,
+  index: number,
+  markers?: MarkerDelimiters | null,
+) {
+  const syntax = createMarkerSyntax(markers)
   const walker = row.ownerDocument.createTreeWalker(row, 4 /* NodeFilter.SHOW_TEXT */)
   const nodes: Text[] = []
   let node = walker.nextNode()
@@ -112,27 +127,31 @@ export function rewriteTableMarkersInRow(row: Element, tableName: string, index:
     node = walker.nextNode()
   }
   const prefix = `${tableName}.`
+  const re = syntax.regex()
   for (const textNode of nodes) {
     const text = textNode.textContent ?? ''
-    if (!text.includes('{{')) continue
-    textNode.textContent = text.replace(
-      /\{\{\s*([^\s:{}]+)(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)?\s*\}\}/g,
-      (raw, markerName: string) => {
-        if (!markerName.startsWith(prefix)) return raw
-        const column = markerName.slice(prefix.length)
-        if (column === '$index') return String(index + 1)
-        return `{{${cellPath(tableName, index, column)}}}`
-      },
-    )
+    if (!syntax.contains(text)) continue
+    textNode.textContent = text.replace(re, (raw, markerName: string) => {
+      if (!markerName.startsWith(prefix)) return raw
+      const column = markerName.slice(prefix.length)
+      if (column === '$index') return String(index + 1)
+      return syntax.wrap(cellPath(tableName, index, column))
+    })
   }
 }
 
-export function expandRepeatingRows(root: HTMLElement, fields: FormSchemaField[]) {
+export function expandRepeatingRows(
+  root: HTMLElement,
+  fields: FormSchemaField[],
+  markers?: MarkerDelimiters | null,
+) {
+  const syntax = createMarkerSyntax(markers)
   for (const field of fields) {
     if (field.type !== 'table') continue
     const rows = tableRows(field)
+    const needle = `${syntax.start}${field.name}.`
     const candidates = Array.from(root.querySelectorAll('tr')).filter((tr) =>
-      (tr.textContent ?? '').includes(`{{${field.name}.`),
+      (tr.textContent ?? '').includes(needle),
     )
     for (const template of candidates) {
       const parent = template.parentElement
@@ -140,7 +159,7 @@ export function expandRepeatingRows(root: HTMLElement, fields: FormSchemaField[]
       const fragment = document.createDocumentFragment()
       for (let i = 0; i < rows.length; i++) {
         const clone = template.cloneNode(true) as HTMLElement
-        rewriteTableMarkersInRow(clone, field.name, i)
+        rewriteTableMarkersInRow(clone, field.name, i, markers)
         clone.dataset.ckTable = field.name
         clone.dataset.ckRow = String(i)
         fragment.appendChild(clone)
@@ -151,12 +170,13 @@ export function expandRepeatingRows(root: HTMLElement, fields: FormSchemaField[]
   }
 }
 
-export function collectMarkerParents(root: HTMLElement): Element[] {
+export function collectMarkerParents(root: HTMLElement, markers?: MarkerDelimiters | null): Element[] {
+  const syntax = createMarkerSyntax(markers)
   const parents = new Set<Element>()
   const walker = root.ownerDocument.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */)
   let node = walker.nextNode()
   while (node) {
-    if (node.textContent?.includes('{{')) {
+    if (syntax.contains(node.textContent ?? '')) {
       let el = node.parentElement
       while (el && el !== root) {
         if (BLOCK_TAGS.has(el.tagName)) {
@@ -173,16 +193,32 @@ export function collectMarkerParents(root: HTMLElement): Element[] {
   return [...parents]
 }
 
-export function shouldSkipUnexpandedTableParent(text: string): boolean {
-  const segments = splitByMarkers(text)
+export function shouldSkipUnexpandedTableParent(
+  text: string,
+  markers?: MarkerDelimiters | null,
+): boolean {
+  const segments = splitByMarkers(text, markers)
   return segments.some(
     (segment) =>
       segment.kind === 'field' && Boolean(parseTableColumnRef(segment.name)) && !EXPANDED_CELL.test(segment.name),
   )
 }
 
+export type DocxPreviewPluginContext = {
+  fields: FormSchemaField[]
+}
+
+export interface DocxPreviewPlugin {
+  /** After `renderAsync` and built-in host fit, before repeating-row expand. */
+  afterHtml?(root: HTMLElement, ctx: DocxPreviewPluginContext): void
+  /** After `expandRepeatingRows`, before field slots. */
+  afterExpand?(root: HTMLElement, ctx: DocxPreviewPluginContext): void
+  /** After field slots are mounted. */
+  afterSlots?(root: HTMLElement, ctx: DocxPreviewPluginContext): void
+}
+
 /** Stretch Word page boxes to the host so A4 `595.3pt` does not leave empty gray gutters. */
-function fitDocxToContainer(root: HTMLElement) {
+export function fitDocxToContainer(root: HTMLElement) {
   const wrap = root.querySelector('.docx-wrapper')
   if (wrap instanceof HTMLElement) {
     wrap.style.background = 'transparent'
@@ -199,24 +235,47 @@ function fitDocxToContainer(root: HTMLElement) {
   }
 }
 
+/** Optional: same stretch as the built-in fit. Safe to omit; mount still fits first. */
+export const docxFitHostPlugin: DocxPreviewPlugin = {
+  afterHtml(root) {
+    fitDocxToContainer(root)
+  },
+}
+
+function pluginCtx(fields: FormSchemaField[]): DocxPreviewPluginContext {
+  return { fields }
+}
+
 /**
- * Render a .docx buffer into a container and mount fields into {{marker}} slots.
- * Layout comes from docx-preview; business only supplies FieldMounter.
+ * Expand repeating rows and mount field slots on already-rendered HTML.
+ * Used by `mountDocxPreview` after `renderAsync`; tests can call it without a .docx buffer.
  */
-export function mountDocxPreview(container: HTMLElement, options: MountDocxPreviewOptions): DocxPreviewHandle {
-  let buffer = options.buffer
+export function hydrateDocxPreviewDom(
+  root: HTMLElement,
+  options: {
+    fields: FormSchemaField[]
+    validation?: ValidationResult
+    mountField: DocxFieldMounter
+    onChange: (path: string, value: unknown) => void
+    markers?: MarkerDelimiters | null
+    plugins?: DocxPreviewPlugin[]
+  },
+): {
+  slots: HTMLElement[]
+  handles: Map<HTMLElement, DocxFieldHandle>
+  refresh: (patch?: { fields?: FormSchemaField[]; validation?: ValidationResult }) => void
+  destroy: () => void
+} {
   let fields = options.fields
   let validation = options.validation ?? { ok: true, issues: [] }
-  let mountField = options.mountField
-  let onChange = options.onChange
-  let styleContainer = options.styleContainer
-  let render = options.render
-
+  const mountField = options.mountField
+  const onChange = options.onChange
+  const markers = options.markers
+  const plugins = options.plugins ?? []
   const slots: HTMLElement[] = []
   const handles = new Map<HTMLElement, DocxFieldHandle>()
-  let generation = 0
 
-  function destroySlots() {
+  function destroy() {
     for (const handle of handles.values()) handle.destroy()
     handles.clear()
     slots.length = 0
@@ -235,42 +294,88 @@ export function mountDocxPreview(container: HTMLElement, options: MountDocxPrevi
     handles.set(holder, handle)
   }
 
-  function hydrate(root: HTMLElement) {
-    destroySlots()
-    expandRepeatingRows(root, fields)
-    for (const parent of collectMarkerParents(root)) {
-      const text = parent.textContent ?? ''
-      const segments = splitByMarkers(text)
-      if (!segments.some((segment) => segment.kind === 'field')) continue
-      if (shouldSkipUnexpandedTableParent(text)) continue
-      parent.textContent = ''
-      for (const segment of segments) {
-        if (segment.kind === 'text') {
-          parent.appendChild(document.createTextNode(segment.text))
-          continue
-        }
-        const holder = document.createElement('span')
-        holder.className = 'ck-field-slot'
-        holder.dataset.field = segment.name
-        parent.appendChild(holder)
-        slots.push(holder)
-        mountSlot(holder, segment.name)
+  expandRepeatingRows(root, fields, markers)
+  for (const plugin of plugins) plugin.afterExpand?.(root, pluginCtx(fields))
+
+  for (const parent of collectMarkerParents(root, markers)) {
+    const text = parent.textContent ?? ''
+    const segments = splitByMarkers(text, markers)
+    if (!segments.some((segment) => segment.kind === 'field')) continue
+    if (shouldSkipUnexpandedTableParent(text, markers)) continue
+    parent.textContent = ''
+    for (const segment of segments) {
+      if (segment.kind === 'text') {
+        parent.appendChild(document.createTextNode(segment.text))
+        continue
       }
+      const holder = document.createElement('span')
+      holder.className = 'ck-field-slot'
+      holder.dataset.field = segment.name
+      parent.appendChild(holder)
+      slots.push(holder)
+      mountSlot(holder, segment.name)
     }
   }
 
-  function refreshSlots() {
-    for (const holder of slots) {
-      const name = holder.dataset.field
-      if (!name) continue
-      const existing = handles.get(holder)
-      const resolved = resolveDocxSlot(name, fields, validation)
-      if (!existing) {
-        mountSlot(holder, name)
-        continue
+  for (const plugin of plugins) plugin.afterSlots?.(root, pluginCtx(fields))
+
+  return {
+    slots,
+    handles,
+    refresh(patch) {
+      if (patch?.fields) fields = patch.fields
+      if (patch?.validation) validation = patch.validation
+      for (const holder of slots) {
+        const name = holder.dataset.field
+        if (!name) continue
+        const existing = handles.get(holder)
+        const resolved = resolveDocxSlot(name, fields, validation)
+        if (!existing) {
+          mountSlot(holder, name)
+          continue
+        }
+        existing.update({ field: resolved.field, value: resolved.value, error: resolved.error })
       }
-      existing.update({ field: resolved.field, value: resolved.value, error: resolved.error })
-    }
+    },
+    destroy,
+  }
+}
+
+/**
+ * Built-in host fit + `afterHtml`, then slot hydration. Call after HTML is already in `root`.
+ */
+export function finalizeDocxPreviewDom(
+  root: HTMLElement,
+  options: Parameters<typeof hydrateDocxPreviewDom>[1],
+) {
+  const fields = options.fields
+  const plugins = options.plugins ?? []
+  fitDocxToContainer(root)
+  for (const plugin of plugins) plugin.afterHtml?.(root, pluginCtx(fields))
+  return hydrateDocxPreviewDom(root, options)
+}
+
+/**
+ * Render a .docx buffer into a container and mount fields into marker slots.
+ * Layout comes from docx-preview; business only supplies FieldMounter.
+ */
+export function mountDocxPreview(container: HTMLElement, options: MountDocxPreviewOptions): DocxPreviewHandle {
+  let buffer = options.buffer
+  let fields = options.fields
+  let validation = options.validation ?? { ok: true, issues: [] }
+  let mountField = options.mountField
+  let onChange = options.onChange
+  let styleContainer = options.styleContainer
+  let render = options.render
+  let markers = options.markers
+  let plugins = options.plugins
+
+  let session: ReturnType<typeof hydrateDocxPreviewDom> | null = null
+  let generation = 0
+
+  function destroySlots() {
+    session?.destroy()
+    session = null
   }
 
   function tableSignature(list: FormSchemaField[]) {
@@ -295,8 +400,14 @@ export function mountDocxPreview(container: HTMLElement, options: MountDocxPrevi
       ...render,
     })
     if (token !== generation) return
-    fitDocxToContainer(container)
-    hydrate(container)
+    session = finalizeDocxPreviewDom(container, {
+      fields,
+      validation,
+      mountField,
+      onChange,
+      markers,
+      plugins,
+    })
   }
 
   void paint()
@@ -311,12 +422,14 @@ export function mountDocxPreview(container: HTMLElement, options: MountDocxPrevi
       if (patch.onChange) onChange = patch.onChange
       if (patch.styleContainer) styleContainer = patch.styleContainer
       if (patch.render) render = { ...render, ...patch.render }
+      if (patch.markers) markers = patch.markers
+      if (patch.plugins) plugins = patch.plugins
       const nextSig = tableSignature(fields)
-      if (patch.buffer || nextSig !== prevSig) {
+      if (patch.buffer || nextSig !== prevSig || patch.markers) {
         await paint()
         return
       }
-      refreshSlots()
+      session?.refresh({ fields, validation })
     },
     destroy() {
       generation += 1

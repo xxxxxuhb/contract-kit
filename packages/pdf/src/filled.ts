@@ -4,10 +4,20 @@ import { supportsCanvasDrawElement } from './canvas-draw-element'
 import { exportElementToPdf } from './export-pdf'
 import type { ExportPdfOptions, PdfExportMode } from './types'
 
+export type PdfPluginContext = {
+  kind: 'docx' | 'xlsx'
+}
+
+export interface PdfPlugin {
+  /** After filled HTML is mounted, before raster / print. */
+  afterPdfHtml?(host: HTMLElement, ctx: PdfPluginContext): void
+}
+
 export type FilledExportInput = {
   kind: 'docx' | 'xlsx'
   buffer: Uint8Array
   options?: ExportPdfOptions
+  plugins?: PdfPlugin[]
 }
 
 function styleHost(el: HTMLElement) {
@@ -127,6 +137,11 @@ async function mountFilled(input: FilledExportInput, host: HTMLElement): Promise
   else throw new Error(`不支持的文档类型: ${String(input.kind)}`)
 }
 
+function applyAfterPdfHtml(host: HTMLElement, input: FilledExportInput) {
+  const ctx = { kind: input.kind }
+  for (const plugin of input.plugins ?? []) plugin.afterPdfHtml?.(host, ctx)
+}
+
 /** 系统打印 →「另存为 PDF」 */
 export async function printFilledDocument(input: FilledExportInput): Promise<void> {
   const iframe = document.createElement('iframe')
@@ -196,6 +211,7 @@ export async function printFilledDocument(input: FilledExportInput): Promise<voi
     }
 
     await waitForPaint(host)
+    applyAfterPdfHtml(host, input)
 
     await new Promise<void>((resolve, reject) => {
       let settled = false
@@ -247,6 +263,7 @@ export async function exportFilledToPdf(input: FilledExportInput): Promise<Uint8
   document.body.appendChild(host)
   try {
     await mountFilled(input, host)
+    applyAfterPdfHtml(host, input)
     return exportElementToPdf(host, {
       pageSelector: input.kind === 'docx' ? 'section.docx' : '.ck-pdf-sheet',
       ...options,

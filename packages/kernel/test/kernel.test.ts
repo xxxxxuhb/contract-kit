@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { createKernel } from '../src/kernel'
 import { hydrateFromBundle, snapshotKernel, toPersistBundle } from '../src/persist'
-import type { DiscoveredField, DocumentAdapter, Field, Source } from '../src/types'
+import type { DiscoveredField, DocumentAdapter, Field, MarkerDelimiters, Source } from '../src/types'
 
 class MemoryAdapter implements DocumentAdapter {
   readonly kind = 'docx' as const
@@ -11,6 +11,7 @@ class MemoryAdapter implements DocumentAdapter {
   data: Record<string, unknown> = {}
   source: Source | null = null
   exported = new Uint8Array([9, 8, 7])
+  appliedMarkers: MarkerDelimiters | null = null
 
   async load(source: Source) {
     this.source = source
@@ -40,6 +41,10 @@ class MemoryAdapter implements DocumentAdapter {
 
   async bind(data: Record<string, unknown>) {
     this.data = { ...data }
+  }
+
+  setMarkers(markers: MarkerDelimiters) {
+    this.appliedMarkers = markers
   }
 
   async export() {
@@ -273,6 +278,8 @@ test('persist bundle and snapshot follow hydrate convention', async () => {
   assert.ok(bundle)
   assert.equal(bundle!.data.partyA, '甲')
   assert.equal(bundle!.definition.fields[0].name, 'partyA')
+  assert.equal(bundle!.definition.markers, undefined)
+  assert.deepEqual(kernel.getMarkers(), { start: '{{', end: '}}' })
 
   const snap = snapshotKernel(kernel)
   assert.equal(snap.data.partyA, '甲')
@@ -330,4 +337,98 @@ test('insertRow / removeRow mutate table arrays', async () => {
   assert.deepEqual(kernel.getData().items, [{ name: '橙' }, { name: '苹果' }])
   await kernel.dispatch({ type: 'removeRow', table: 'items', index: 0 })
   assert.deepEqual(kernel.getData().items, [{ name: '苹果' }])
+})
+
+test('custom markers persist on load and hydrate', async () => {
+  const adapter = new MemoryAdapter()
+  adapter.discovered = [{ name: 'partyA', type: 'text', anchor: { kind: 'marker', name: 'partyA' } }]
+  const markers = { start: '[[', end: ']]' }
+  const kernel = createKernel({ adapter, markers })
+  await kernel.dispatch({ type: 'load', source: source() })
+  assert.deepEqual(kernel.getMarkers(), markers)
+  assert.deepEqual(kernel.getDefinition()?.markers, markers)
+  assert.deepEqual(adapter.appliedMarkers, markers)
+
+  const next = new MemoryAdapter()
+  const restored = createKernel({ adapter: next })
+  await restored.dispatch({
+    type: 'hydrate',
+    source: source(),
+    definition: kernel.getDefinition()!,
+  })
+  assert.deepEqual(restored.getMarkers(), markers)
+  assert.deepEqual(next.appliedMarkers, markers)
+})
+
+test('plugins hook discover, hydrate, and export without replacing validators/formatters', async () => {
+  const adapter = new MemoryAdapter()
+  adapter.discovered = [
+    { name: 'skipMe', type: 'text', anchor: { kind: 'marker', name: 'skipMe' } },
+    { name: 'partyA', type: 'text', required: true, anchor: { kind: 'marker', name: 'partyA' } },
+    { name: 'amount', type: 'number', outputFormat: 'amountCn', anchor: { kind: 'marker', name: 'amount' } },
+  ]
+  const order: string[] = []
+  const kernel = createKernel({
+    adapter,
+    formatters: {
+      amountCn: ({ value }) => `CNY ${value}`,
+    },
+    validators: [
+      ({ data }) => {
+        order.push('validator')
+        if (data.partyA === 'bad') return { path: 'partyA', message: 'blocked' }
+        return null
+      },
+    ],
+    plugins: [
+      {
+        afterDiscover(fields) {
+          order.push('afterDiscover')
+          return fields.filter((field) => field.name !== 'skipMe')
+        },
+        afterHydrate({ data }) {
+          order.push('afterHydrate')
+          return { data: { ...data, partyA: data.partyA ?? 'Acme', amount: 10 } }
+        },
+        beforeExport(data) {
+          order.push('beforeExport')
+          return { ...data, partyA: `${data.partyA} Ltd` }
+        },
+        afterExport(result) {
+          order.push('afterExport')
+          return new Uint8Array([...result.buffer, 1])
+        },
+      },
+    ],
+  })
+
+  await kernel.dispatch({ type: 'load', source: source() })
+  assert.deepEqual(
+    kernel.getFormSchema().fields.map((field) => field.name),
+    ['partyA', 'amount'],
+  )
+  assert.equal(kernel.getData().partyA, 'Acme')
+  assert.equal(kernel.getData().amount, 10)
+  assert.equal(kernel.validate().ok, true)
+  assert.ok(order.indexOf('afterDiscover') < order.indexOf('afterHydrate'))
+  assert.ok(order.indexOf('afterHydrate') < order.indexOf('validator'))
+
+  assert.deepEqual(kernel.getExportData(), { partyA: 'Acme Ltd', amount: 'CNY 10' })
+  const exported = await kernel.dispatch({ type: 'export' })
+  assert.equal(exported.type, 'exported')
+  if (exported.type === 'exported') {
+    assert.deepEqual(exported.buffer, new Uint8Array([9, 8, 7, 1]))
+  }
+  assert.deepEqual(adapter.data, { partyA: 'Acme Ltd', amount: 'CNY 10' })
+  assert.ok(order.indexOf('beforeExport') < order.indexOf('afterExport'))
+
+  await kernel.dispatch({
+    type: 'hydrate',
+    source: source(),
+    definition: kernel.getDefinition()!,
+    data: { partyA: 'bad', amount: 3 },
+  })
+  assert.equal(kernel.getData().partyA, 'bad')
+  assert.equal(kernel.validate().ok, false)
+  assert.match(kernel.validate().issues[0].message, /blocked/)
 })

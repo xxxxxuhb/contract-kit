@@ -1,9 +1,11 @@
 import {
   aggregateMarkerFields,
+  normalizeMarkers,
   parseMarkers,
   type DiscoveredField,
   type DocumentAdapter,
   type Field,
+  type MarkerDelimiters,
   type PreviewModel,
   type Source,
 } from '@paperfill/kernel'
@@ -23,13 +25,21 @@ export {
   resolveDocxSlot,
   rewriteTableMarkersInRow,
   shouldSkipUnexpandedTableParent,
+  fitDocxToContainer,
+  docxFitHostPlugin,
   type DocxFieldHandle,
   type DocxFieldMountContext,
   type DocxFieldMounter,
   type DocxPreviewHandle,
+  type DocxPreviewPlugin,
+  type DocxPreviewPluginContext,
   type DocxRenderOptions,
   type MountDocxPreviewOptions,
 } from './mount-preview'
+
+export type DocxAdapterOptions = {
+  markers?: MarkerDelimiters
+}
 
 export class DocxAdapter implements DocumentAdapter {
   readonly kind = 'docx' as const
@@ -37,6 +47,15 @@ export class DocxAdapter implements DocumentAdapter {
   private files = new Map<string, Uint8Array>()
   private bound: Map<string, Uint8Array> | null = null
   private fields = new Map<string, Field>()
+  private markers: MarkerDelimiters
+
+  constructor(options?: DocxAdapterOptions) {
+    this.markers = normalizeMarkers(options?.markers)
+  }
+
+  setMarkers(markers: MarkerDelimiters): void {
+    this.markers = normalizeMarkers(markers)
+  }
 
   async load(source: Source): Promise<void> {
     if (source.kind !== 'docx') {
@@ -63,7 +82,7 @@ export class DocxAdapter implements DocumentAdapter {
       if (!isWordXmlPath(path)) continue
       chunks.push(extractText(new TextDecoder().decode(bytes)))
     }
-    return aggregateMarkerFields(parseMarkers(chunks.join('\n'))).map((field) => ({
+    return aggregateMarkerFields(parseMarkers(chunks.join('\n'), this.markers)).map((field) => ({
       name: field.name,
       type: field.type,
       label: field.name,
@@ -77,7 +96,7 @@ export class DocxAdapter implements DocumentAdapter {
     if (!bytes) return { kind: 'docx', blocks: [] }
     return {
       kind: 'docx',
-      blocks: buildDocxPreview(new TextDecoder().decode(bytes)),
+      blocks: buildDocxPreview(new TextDecoder().decode(bytes), this.markers),
     }
   }
 
@@ -93,20 +112,22 @@ export class DocxAdapter implements DocumentAdapter {
 
   async insertAnchor(field: Field): Promise<void> {
     this.fields.set(field.id, field)
-    this.rewriteDocument((xml) => insertMarkerInDocumentXml(xml, field))
+    this.rewriteDocument((xml) => insertMarkerInDocumentXml(xml, field, this.markers))
   }
 
   async updateAnchor(field: Field): Promise<void> {
     const previous = this.fields.get(field.id)
     this.fields.set(field.id, field)
-    this.rewriteDocument((xml) => updateMarkerInDocumentXml(xml, previous?.name ?? field.name, field))
+    this.rewriteDocument((xml) =>
+      updateMarkerInDocumentXml(xml, previous?.name ?? field.name, field, this.markers),
+    )
   }
 
   async removeAnchor(fieldId: string): Promise<void> {
     const field = this.fields.get(fieldId)
     this.fields.delete(fieldId)
     if (!field) return
-    this.rewriteDocument((xml) => removeMarkerFromDocumentXml(xml, field.name))
+    this.rewriteDocument((xml) => removeMarkerFromDocumentXml(xml, field.name, this.markers))
   }
 
   async bind(data: Record<string, unknown>): Promise<void> {
@@ -119,9 +140,9 @@ export class DocxAdapter implements DocumentAdapter {
       const original = decoder.decode(bytes)
       let xml = original
       if (path === 'word/document.xml') {
-        xml = replaceImageMarkersInXml(xml, embeds)
+        xml = replaceImageMarkersInXml(xml, embeds, this.markers)
       }
-      xml = bindDocumentXml(xml, data)
+      xml = bindDocumentXml(xml, data, this.markers)
       if (xml !== original) next.set(path, encoder.encode(xml))
     }
     this.bound = applyImagePackage(next, embeds)

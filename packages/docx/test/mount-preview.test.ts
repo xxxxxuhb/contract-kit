@@ -4,6 +4,7 @@ import { JSDOM } from 'jsdom'
 import type { FormSchemaField } from '@paperfill/kernel'
 import {
   expandRepeatingRows,
+  finalizeDocxPreviewDom,
   resolveDocxSlot,
   rewriteTableMarkersInRow,
   shouldSkipUnexpandedTableParent,
@@ -16,11 +17,14 @@ function withDom<T>(run: (document: Document) => T): T {
   ;(globalThis as { window: unknown }).window = dom.window
   ;(globalThis as { document: unknown }).document = dom.window.document
   ;(globalThis as { NodeFilter: unknown }).NodeFilter = dom.window.NodeFilter
+  ;(globalThis as { HTMLElement: unknown }).HTMLElement = dom.window.HTMLElement
   try {
     return run(dom.window.document)
   } finally {
     ;(globalThis as { window: unknown }).window = prevWindow
     ;(globalThis as { document: unknown }).document = prevDocument
+    delete (globalThis as { NodeFilter?: unknown }).NodeFilter
+    delete (globalThis as { HTMLElement?: unknown }).HTMLElement
     dom.window.close()
   }
 }
@@ -90,8 +94,64 @@ test('expandRepeatingRows clones template rows from data length', () => {
   })
 })
 
+test('rewriteTableMarkersInRow honors custom delimiters', () => {
+  withDom((document) => {
+    const tr = document.createElement('tr')
+    tr.innerHTML = '<td>[[items.$index]]</td><td>[[items.name]]</td>'
+    rewriteTableMarkersInRow(tr, 'items', 1, { start: '[[', end: ']]' })
+    assert.equal(tr.textContent, '2[[items.1.name]]')
+  })
+})
+
 test('shouldSkipUnexpandedTableParent ignores template row markers', () => {
   assert.equal(shouldSkipUnexpandedTableParent('{{items.name}}'), true)
   assert.equal(shouldSkipUnexpandedTableParent('{{items.0.name}}'), false)
   assert.equal(shouldSkipUnexpandedTableParent('甲方 {{partyA}}'), false)
+})
+
+test('docx preview plugins run afterHtml, afterExpand, then afterSlots', () => {
+  withDom((document) => {
+    const root = document.createElement('div')
+    root.innerHTML = '<table><tr><td>{{items.name}}</td></tr></table><p>{{partyA}}</p>'
+    document.body.appendChild(root)
+    const order: string[] = []
+    const session = finalizeDocxPreviewDom(root, {
+      fields: [
+        {
+          id: '1',
+          name: 'items',
+          type: 'table',
+          columns: [{ name: 'name', type: 'text' }],
+          value: [{ name: '苹果' }, { name: '橙' }],
+        },
+        { id: '2', name: 'partyA', type: 'text', value: '星河' },
+      ],
+      mountField: (container, ctx) => {
+        container.textContent = String(ctx.value ?? '')
+        return { update() {}, destroy() { container.replaceChildren() } }
+      },
+      onChange() {},
+      plugins: [
+        {
+          afterHtml(el) {
+            order.push('afterHtml')
+            el.dataset.fitted = '1'
+          },
+          afterExpand(el) {
+            order.push('afterExpand')
+            assert.equal(el.querySelectorAll('tr').length, 2)
+            assert.equal(el.querySelectorAll('.ck-field-slot').length, 0)
+          },
+          afterSlots(el) {
+            order.push('afterSlots')
+            assert.ok(el.querySelectorAll('.ck-field-slot').length >= 2)
+          },
+        },
+      ],
+    })
+    assert.deepEqual(order, ['afterHtml', 'afterExpand', 'afterSlots'])
+    assert.equal(root.dataset.fitted, '1')
+    assert.equal(root.querySelector('[data-field="partyA"]')?.textContent, '星河')
+    session.destroy()
+  })
 })

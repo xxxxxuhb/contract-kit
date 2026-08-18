@@ -3,6 +3,10 @@ export type { FormatTarget } from './format'
 export { createKernel } from './kernel'
 export {
   aggregateMarkerFields,
+  createMarkerSyntax,
+  DEFAULT_MARKERS,
+  isDefaultMarkers,
+  normalizeMarkers,
   parseMarkers,
   parseTableColumnRef,
   replaceMarkers,
@@ -12,7 +16,7 @@ export {
   tableNamesInText,
   textHasTableMarkers,
 } from './markers'
-export type { MarkerSegment, ParsedMarker, ReplaceMarkersOptions, TableColumnRef } from './markers'
+export type { MarkerSegment, MarkerSyntax, ParsedMarker, ReplaceMarkersOptions, TableColumnRef } from './markers'
 export { isImageDataUrl, parseDataUrl } from './image'
 export type { ParsedDataUrl } from './image'
 export { cloneData, insertTableRow, removeTableRow, rowsForExpand, setDataPath } from './path'
@@ -38,7 +42,10 @@ export type {
   FormSchemaField,
   Kernel,
   KernelEvent,
+  KernelPlugin,
+  KernelPluginContext,
   KernelState,
+  MarkerDelimiters,
   OverlayAnchor,
   PreviewBlock,
   PreviewCell,

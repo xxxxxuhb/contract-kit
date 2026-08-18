@@ -244,3 +244,27 @@ test('xlsx keeps a blank placeholder row when the table is empty', async () => {
   assert.equal(String(sheet.getCell('B2').value ?? ''), '')
   assert.equal(String(sheet.getCell('B3').value), 'empty-table')
 })
+
+test('custom marker delimiters discover and export', async () => {
+  const workbook = new ExcelJS.Workbook()
+  const sheet = workbook.addWorksheet('合同')
+  sheet.getCell('B1').value = '[[partyA]]'
+  sheet.getCell('C1').value = '{{skip}}'
+  const buffer = new Uint8Array(await workbook.xlsx.writeBuffer())
+  const markers = { start: '[[', end: ']]' }
+  const kernel = createKernel({ adapter: new XlsxAdapter({ markers }), markers })
+  await kernel.dispatch({ type: 'load', source: { kind: 'xlsx', buffer } })
+  assert.deepEqual(
+    kernel.getFormSchema().fields.map((f) => f.name),
+    ['partyA'],
+  )
+  await kernel.dispatch({ type: 'setValue', path: 'partyA', value: '星河' })
+  const result = await kernel.dispatch({ type: 'export' })
+  assert.equal(result.type, 'exported')
+  if (result.type !== 'exported') return
+  const out = new ExcelJS.Workbook()
+  await out.xlsx.load(result.buffer as unknown as ExcelJS.Buffer)
+  const next = out.getWorksheet('合同')!
+  assert.equal(String(next.getCell('B1').value), '星河')
+  assert.equal(String(next.getCell('C1').value), '{{skip}}')
+})

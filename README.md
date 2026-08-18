@@ -151,7 +151,7 @@ import 'paperfill/xlsx/style.css'
 | **浏览器** | 现代 evergreen：Chrome / Edge **≥ 94**，Firefox **≥ 93**，Safari **≥ 15.4**（编译目标 ES2022；需 `Uint8Array`、基础 DOM） |
 | **运行时** | `kernel` / `docx` / `xlsx` 可在 Node 与浏览器使用；`ui`、`mountDocxPreview`、`mountXlsxPreview`、`pdf` 依赖 **浏览器 DOM**，勿在纯 SSR 路径直接调用 |
 | **PDF** | `exportFilledDocument` **仅浏览器**；默认 `html2canvas`，不是服务端 Office 矢量转 PDF；`canvas-draw-element` 需 Chromium 实验 flag |
-| **Word 预览** | `mountDocxPreview` 版式靠 `docx-preview`，与桌面 Word 不完全一致 |
+| **Word 预览** | `mountDocxPreview` 版式靠 `docx-preview`，与桌面 Word 不完全一致；自定义标记起止符时传 `markers: kernel.getMarkers()` |
 | **Excel 预览** | `getPreview` / `mountXlsxPreview` 支持单元格填充色、字体色（`argb`；主题色为近似）；默认去掉末尾幽灵行/列；不覆盖渐变、条件格式、图表等 |
 | **图片字段** | data URL；`bind`/`export` 嵌入 Word drawing / Excel 单元格图（固定约 120px，无裁剪/锚点微调） |
 | **非目标** | 完整 Office 编辑器、服务端「正宗」排版引擎；`ui` 仍是框架无关 DOM，Vue/React 只提供订阅薄封装 |

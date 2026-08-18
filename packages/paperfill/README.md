@@ -100,7 +100,7 @@ const office = await kernel.dispatch({ type: 'export' })
 // data: '2026-08-16'  →  export: '16日08月2026年'
 ```
 
-选项导出文案用 `outputFormat: 'label'`。特殊格式用 `createKernel({ formatters: { amountCn } })`。
+选项导出文案用 `outputFormat: 'label'`。特殊格式用 `createKernel({ formatters: { amountCn } })`。标记默认 `{{name}}`，可 `createKernel({ markers: { start: '[[', end: ']]' } })`。扩展点用 `plugins`（不替代 validators / formatters / subscribe）。
 
 ## 限制
 

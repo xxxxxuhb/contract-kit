@@ -1,7 +1,14 @@
 import { formatData } from './format'
 import { hashBytes } from './hash'
 import { createId } from './id'
+import { isDefaultMarkers, normalizeMarkers, DEFAULT_MARKERS } from './markers'
 import { cloneData, insertTableRow, removeTableRow, setDataPath } from './path'
+import {
+  applyAfterDiscover,
+  applyAfterExport,
+  applyAfterHydrate,
+  applyBeforeExport,
+} from './plugin'
 import { buildFormSchema, buildView, emptyValidation, validateState } from './schema'
 import type {
   Command,
@@ -11,7 +18,9 @@ import type {
   Field,
   Kernel,
   KernelEvent,
+  KernelPlugin,
   KernelState,
+  MarkerDelimiters,
   PreviewModel,
   TemplateDefinition,
   ViewportPort,
@@ -21,6 +30,9 @@ export function createKernel(options: CreateKernelOptions): Kernel {
   const adapter: DocumentAdapter = options.adapter
   const validators = options.validators ?? []
   const formatters = options.formatters
+  const plugins: KernelPlugin[] = options.plugins ?? []
+  const defaultMarkers = normalizeMarkers(options.markers)
+  let markers: MarkerDelimiters = defaultMarkers
   let viewport: ViewportPort | null = null
   let preview: PreviewModel | null = null
   const listeners = new Set<(event: KernelEvent) => void>()
@@ -62,6 +74,28 @@ export function createKernel(options: CreateKernelOptions): Kernel {
     emit({ type: 'validated', result: state.validation })
   }
 
+  function applyMarkers(next: MarkerDelimiters) {
+    markers = normalizeMarkers(next)
+    adapter.setMarkers?.(markers)
+  }
+
+  function persistMarkers(): MarkerDelimiters | undefined {
+    return isDefaultMarkers(markers) ? undefined : markers
+  }
+
+  function exportPayload() {
+    if (!state.definition || !state.source) return {}
+    return applyBeforeExport(plugins, formatData(state.definition, state.data, formatters), {
+      definition: state.definition,
+      source: state.source,
+    })
+  }
+
+  function finishHydrate(patchedData: Record<string, unknown>) {
+    state.data = cloneData(patchedData)
+    refreshValidation()
+  }
+
   function can(command: Command): boolean {
     switch (command.type) {
       case 'load':
@@ -89,12 +123,14 @@ export function createKernel(options: CreateKernelOptions): Kernel {
 
     switch (command.type) {
       case 'load': {
+        applyMarkers(defaultMarkers)
         await adapter.load(command.source)
         const hash = command.source.hash ?? (await hashBytes(command.source.buffer))
         preview = adapter.getPreview()
         const fields: Field[] = []
         const names = new Set<string>()
-        for (const raw of await adapter.discoverFields()) {
+        const discovered = applyAfterDiscover(plugins, await adapter.discoverFields(), command.source)
+        for (const raw of discovered) {
           if (names.has(raw.name)) continue
           names.add(raw.name)
           const field: Field = { ...raw, id: raw.id ?? createId() }
@@ -106,16 +142,28 @@ export function createKernel(options: CreateKernelOptions): Kernel {
             version: 1,
             source: { kind: command.source.kind, hash },
             fields,
+            markers: persistMarkers(),
           },
           data: {},
           source: { ...command.source, hash },
           validation: emptyValidation(),
         }
-        emit({ type: 'state-changed' })
+        const nextData = applyAfterHydrate(plugins, {
+          definition: state.definition!,
+          data: state.data,
+          source: state.source!,
+        })
+        if (plugins.some((plugin) => plugin.afterHydrate) || nextData !== state.data) {
+          finishHydrate(nextData)
+          emit({ type: 'data-changed' })
+        } else {
+          emit({ type: 'state-changed' })
+        }
         return { type: 'ok' }
       }
 
       case 'hydrate': {
+        applyMarkers(command.definition.markers ?? DEFAULT_MARKERS)
         await adapter.load(command.source)
         const hash = command.source.hash ?? command.definition.source.hash
         preview = adapter.getPreview()
@@ -125,12 +173,19 @@ export function createKernel(options: CreateKernelOptions): Kernel {
           definition: {
             ...command.definition,
             fields,
+            markers: persistMarkers(),
           },
           data: cloneData(command.data ?? {}),
           source: { ...command.source, hash },
           validation: emptyValidation(),
         }
-        refreshValidation()
+        finishHydrate(
+          applyAfterHydrate(plugins, {
+            definition: state.definition!,
+            data: state.data,
+            source: state.source!,
+          }),
+        )
         emit({ type: 'data-changed' })
         return { type: 'ok' }
       }
@@ -217,9 +272,13 @@ export function createKernel(options: CreateKernelOptions): Kernel {
 
       case 'export': {
         const definition = requireDefinition()
-        await adapter.bind(formatData(definition, state.data, formatters))
-        const buffer = await adapter.export()
+        await adapter.bind(exportPayload())
         const format = command.format ?? adapter.kind
+        const buffer = applyAfterExport(
+          plugins,
+          { buffer: await adapter.export(), format },
+          { definition, source: state.source! },
+        )
         emit({ type: 'exported', format, bytes: buffer.byteLength })
         return { type: 'exported', buffer, format }
       }
@@ -230,12 +289,12 @@ export function createKernel(options: CreateKernelOptions): Kernel {
     getState: snapshot,
     getDefinition: () => snapshot().definition,
     getData: () => snapshot().data,
-    getExportData: () =>
-      state.definition ? formatData(state.definition, state.data, formatters) : {},
+    getExportData: () => exportPayload(),
     getFormSchema: () => buildFormSchema(state),
     getView: () => buildView(state),
     getPreview: () => preview,
     getSource: () => state.source,
+    getMarkers: () => ({ ...markers }),
     validate: () => validateState(state, validators),
     can,
     dispatch,

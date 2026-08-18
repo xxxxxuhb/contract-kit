@@ -287,7 +287,8 @@ sequenceDiagram
 - [x] **Word 布局 API**：`mountDocxPreview`（docx-preview 版式 + 槽位水合）；接入方只注入 FieldMounter。
 - [x] **image bind / 导出嵌图**：data URL → Word `w:drawing` / Excel 单元格图。
 - [x] **可扩展校验**：`Field.rules`（min/max/长度/正则/日期）+ `createKernel({ validators })` 跨字段。
-- [x] **导出格式**：`Field.outputFormat` + `createKernel({ formatters })`；`data` 保持规范值，`export` / `getExportData()` 套格式。文档标记只写 `{{name}}`。
+- [x] **导出格式**：`Field.outputFormat` + `createKernel({ formatters })`；`data` 保持规范值，`export` / `getExportData()` 套格式。文档标记默认 `{{name}}`，可配 `markers` 起止符。
+- [x] **插件钩子**：可选 `plugins`（kernel / 预览 / PDF），不替代 `validators` / `formatters` / `subscribe` / `mountField`。
 - [x] **锚点写回文档**：`insertField` 在 Word 文末 / Excel 新行写入 `{{name}}`；`updateField` 改标记；`removeField` 删标记。
 - [x] **预览与导出一致**：填写页（原文件+槽位）与 `export`（文本替换+扩行+嵌图）对齐；未填扁平标记导出清空；空表两边各留一行占位。版式仍受 docx-preview / ExcelJS 第三方上限约束。
 - [x] **表格行 API**：`insertRow` / `removeRow`；空表预览/导出保留一行空白占位（UI 仍可由业务做）。

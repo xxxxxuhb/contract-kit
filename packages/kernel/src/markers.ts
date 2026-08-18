@@ -1,4 +1,4 @@
-import type { FieldColumn, FieldType } from './types'
+import type { FieldColumn, FieldType, MarkerDelimiters } from './types'
 
 const FIELD_TYPES = new Set<string>([
   'text',
@@ -12,9 +12,73 @@ const FIELD_TYPES = new Set<string>([
   'display',
 ])
 
-/** `{{name}}` is the contract. `:type` is an optional discover hint; definition wins. */
-const MARKER_RE =
-  /\{\{\s*([^\s:{}]+)\s*(?::\s*([A-Za-z_][A-Za-z0-9_]*))?\s*\}\}/g
+/** Pair of delimiter strings. Default is `{{` / `}}`. */
+export const DEFAULT_MARKERS: MarkerDelimiters = { start: '{{', end: '}}' }
+
+export function normalizeMarkers(markers?: MarkerDelimiters | null): MarkerDelimiters {
+  const start = markers?.start ?? DEFAULT_MARKERS.start
+  const end = markers?.end ?? DEFAULT_MARKERS.end
+  if (!start || !end) {
+    throw new Error('markers.start and markers.end must be non-empty')
+  }
+  return { start, end }
+}
+
+export function isDefaultMarkers(markers: MarkerDelimiters): boolean {
+  return markers.start === DEFAULT_MARKERS.start && markers.end === DEFAULT_MARKERS.end
+}
+
+function escapeRe(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/** `{{name}}` is the default contract. `:type` is an optional discover hint; definition wins. */
+export type MarkerSyntax = {
+  delimiters: MarkerDelimiters
+  start: string
+  end: string
+  regex(): RegExp
+  contains(text: string): boolean
+  wrap(name: string, type?: FieldType): string
+  namedRegex(name: string, flags?: string): RegExp
+}
+
+const syntaxCache = new Map<string, MarkerSyntax>()
+
+export function createMarkerSyntax(markers?: MarkerDelimiters | null): MarkerSyntax {
+  const delimiters = normalizeMarkers(markers)
+  const key = `${delimiters.start}\0${delimiters.end}`
+  const cached = syntaxCache.get(key)
+  if (cached) return cached
+
+  const startRe = escapeRe(delimiters.start)
+  const endRe = escapeRe(delimiters.end)
+  const source = `${startRe}\\s*([^\\s:]+?)\\s*(?::\\s*([A-Za-z_][A-Za-z0-9_]*))?\\s*${endRe}`
+
+  const syntax: MarkerSyntax = {
+    delimiters,
+    start: delimiters.start,
+    end: delimiters.end,
+    regex() {
+      return new RegExp(source, 'g')
+    },
+    contains(text: string) {
+      return text.includes(delimiters.start)
+    },
+    wrap(name: string, type?: FieldType) {
+      if (!type || type === 'text') return `${delimiters.start}${name}${delimiters.end}`
+      return `${delimiters.start}${name}:${type}${delimiters.end}`
+    },
+    namedRegex(name: string, flags = 'g') {
+      return new RegExp(
+        `${startRe}\\s*${escapeRe(name)}(?:\\s*:\\s*[A-Za-z_][A-Za-z0-9_]*)?\\s*${endRe}`,
+        flags,
+      )
+    },
+  }
+  syntaxCache.set(key, syntax)
+  return syntax
+}
 
 export interface ParsedMarker {
   name: string
@@ -37,8 +101,8 @@ export function parseTableColumnRef(markerName: string): TableColumnRef | null {
   return { table, column }
 }
 
-export function parseMarkers(text: string): ParsedMarker[] {
-  const re = new RegExp(MARKER_RE.source, 'g')
+export function parseMarkers(text: string, markers?: MarkerDelimiters | null): ParsedMarker[] {
+  const re = createMarkerSyntax(markers).regex()
   const out: ParsedMarker[] = []
   const seen = new Set<string>()
   let match: RegExpExecArray | null
@@ -118,8 +182,8 @@ export type MarkerSegment =
   | { kind: 'text'; text: string }
   | { kind: 'field'; name: string }
 
-export function splitByMarkers(text: string): MarkerSegment[] {
-  const re = new RegExp(MARKER_RE.source, 'g')
+export function splitByMarkers(text: string, markers?: MarkerDelimiters | null): MarkerSegment[] {
+  const re = createMarkerSyntax(markers).regex()
   const out: MarkerSegment[] = []
   let last = 0
   let match: RegExpExecArray | null
@@ -133,18 +197,19 @@ export function splitByMarkers(text: string): MarkerSegment[] {
 }
 
 export type ReplaceMarkersOptions = {
-  /** `keep` (default) leaves `{{name}}`; `blank` clears it (export bind). */
+  /** `keep` (default) leaves the marker; `blank` clears it (export bind). */
   missing?: 'keep' | 'blank'
 }
 
-/** Flat replace: `{{partyA}}` from data[partyA]. Missing keys keep the marker by default. */
+/** Flat replace from data[name]. Missing keys keep the marker by default. */
 export function replaceMarkers(
   text: string,
   data: Record<string, unknown>,
   options?: ReplaceMarkersOptions,
+  markers?: MarkerDelimiters | null,
 ): string {
   const missing = options?.missing ?? 'keep'
-  const re = new RegExp(MARKER_RE.source, 'g')
+  const re = createMarkerSyntax(markers).regex()
   return text.replace(re, (raw, name: string) => {
     if (!(name in data)) return missing === 'blank' ? '' : raw
     return stringifyFieldValue(data[name])
@@ -160,8 +225,9 @@ export function replaceRowMarkers(
   tableName: string,
   row: Record<string, unknown>,
   index: number,
+  markers?: MarkerDelimiters | null,
 ): string {
-  const re = new RegExp(MARKER_RE.source, 'g')
+  const re = createMarkerSyntax(markers).regex()
   const prefix = `${tableName}.`
   return text.replace(re, (raw, name: string) => {
     if (!name.startsWith(prefix)) return raw
@@ -171,10 +237,13 @@ export function replaceRowMarkers(
   })
 }
 
-/** True if text contains any `{{tableName.}}` marker */
-export function textHasTableMarkers(text: string, tableName?: string): boolean {
-  const markers = parseMarkers(text)
-  for (const marker of markers) {
+/** True if text contains any `tableName.` marker */
+export function textHasTableMarkers(
+  text: string,
+  tableName?: string,
+  markers?: MarkerDelimiters | null,
+): boolean {
+  for (const marker of parseMarkers(text, markers)) {
     const ref = parseTableColumnRef(marker.name)
     if (!ref) continue
     if (!tableName || ref.table === tableName) return true
@@ -183,9 +252,9 @@ export function textHasTableMarkers(text: string, tableName?: string): boolean {
 }
 
 /** Table field names referenced by dotted markers in text */
-export function tableNamesInText(text: string): string[] {
+export function tableNamesInText(text: string, markers?: MarkerDelimiters | null): string[] {
   const names = new Set<string>()
-  for (const marker of parseMarkers(text)) {
+  for (const marker of parseMarkers(text, markers)) {
     const ref = parseTableColumnRef(marker.name)
     if (ref) names.add(ref.table)
   }

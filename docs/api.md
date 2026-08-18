@@ -38,6 +38,16 @@ npm i paperfill
 
 文档里只放锚点名字。`type` / `label` / `required` / `options` / `outputFormat` / 表 `columns` 都写在 `TemplateDefinition`。
 
+默认起止符是 `{{` / `}}`。可换成一对字符串（如 `[[` / `]]`、`${` / `}`），不要用 `{` / `}` 或 `[` / `]` 这种易和正文撞车的单字符。创建 kernel 时传入；`load` 会写入 `definition.markers`（默认双括号省略该字段）。`hydrate` 以 definition 为准。`mountDocxPreview` 传同一份 `markers: kernel.getMarkers()`。
+
+```ts
+const markers = { start: '[[', end: ']]' }
+const kernel = createKernel({
+  adapter: new DocxAdapter({ markers }),
+  markers,
+})
+```
+
 `{{name:type}}` 仍能解析，仅作第一次 `load` 的类型提示；`hydrate` 之后以 definition 为准。
 
 > `image`：data 为 data URL（`data:image/png;base64,...`）；`bind` / `export` 会嵌入 Word drawing / Excel 单元格图。  
@@ -82,18 +92,19 @@ await kernel.dispatch({ type: 'removeRow', table: 'items', index: 0 })
 
 | 函数 | 说明 |
 |------|------|
-| `parseMarkers(text)` | 解析去重后的标记列表 |
+| `parseMarkers(text, markers?)` | 解析去重后的标记列表 |
 | `aggregateMarkerFields(markers)` | 将 `items.col` 聚成一个 `table` 字段 + columns |
-| `splitByMarkers(text)` | 拆成 `text` / `field` 段（预览挂控件用） |
-| `replaceMarkers(text, data, options?)` | 用 data 替换扁平标记；`options.missing` 为 `blank` 时清空未写入的标记 |
+| `splitByMarkers(text, markers?)` | 拆成 `text` / `field` 段（预览挂控件用） |
+| `replaceMarkers(text, data, options?, markers?)` | 用 data 替换扁平标记；`options.missing` 为 `blank` 时清空未写入的标记 |
+| `replaceRowMarkers(text, table, row, index, markers?)` | 替换一行内的 `table.col` / `$index` |
+| `createMarkerSyntax(markers?)` | 按起止符生成 wrap / regex / contains |
 | `rowsForExpand(value)` | 空表 → `[{}]` 占位行 |
 | `toPersistBundle(kernel)` | `{ file, definition, data }` |
 | `hydrateFromBundle(bundle)` | 生成 `hydrate` 命令 |
 | `snapshotKernel(kernel)` | UI 只读快照 |
-| `replaceRowMarkers(text, table, row, index)` | 替换一行内的 `table.col` / `$index` |
 | `stringifyFieldValue(value)` | 把值转成字符串（无 outputFormat） |
 | `formatFieldValue(value, field, ctx?)` | 按 `outputFormat` / 自定义 formatter 转展示值 |
-| `formatData(definition, data, formatters?)` | 生成导出用 data（`export` 内部会调） |
+| `formatData(definition, data, formatters?)` | 生成导出用 data（`export` / `getExportData` 内部会调；之后再跑 `beforeExport`） |
 
 ---
 
@@ -106,6 +117,7 @@ interface TemplateDefinition {
   version: 1
   source: { kind: 'docx' | 'xlsx'; hash: string }
   fields: Field[]
+  markers?: { start: string; end: string } // 省略 = {{ }}
 }
 ```
 
@@ -213,6 +225,8 @@ const kernel = createKernel({
   formatters: {
     amountCn: ({ value }) => String(value), // outputFormat: 'amountCn'
   },
+  // markers: { start: '[[', end: ']]' },
+  // plugins: [stampPlugin],
 })
 ```
 
@@ -224,11 +238,12 @@ const kernel = createKernel({
 | `getState()` | `KernelState` | definition + data + source + validation 快照 |
 | `getDefinition()` | `TemplateDefinition \| null` | 字段定义 |
 | `getData()` | `Record<string, unknown>` | 填写值（规范值，未套 `outputFormat`） |
-| `getExportData()` | `Record<string, unknown>` | 套过 `outputFormat` / `formatters` 的导出值 |
+| `getExportData()` | `Record<string, unknown>` | 套过 `outputFormat` / `formatters` / `beforeExport` 的导出值 |
 | `getFormSchema()` | `FormSchema` | 表单字段（含当前 value） |
 | `getView()` | `ViewModel` | `{ id, label, value }[]` |
 | `getPreview()` | `PreviewModel \| null` | adapter 预览结构 |
 | `getSource()` | `Source \| null` | 原始文件 |
+| `getMarkers()` | `MarkerDelimiters` | 当前起止符（默认 `{{` / `}}`） |
 | `validate()` | `ValidationResult` | 立即重算校验 |
 | `can(command)` | `boolean` | 当前是否可执行该命令 |
 | `subscribe(listener)` | `() => void` | 订阅事件；返回取消函数 |
@@ -262,7 +277,7 @@ type DispatchResult =
 
 - `load`：适合「只有文件」；业务 options / 必填需再 hydrate 或 `updateField`。
 - `hydrate`：已发布模板主路径；`source.kind` 须与 adapter 一致。见下方「hydrate 三件套」。
-- `export`：先按 `outputFormat` 生成导出值，再在**副本**上替换标记并扩行/嵌图；`getData()` 仍是规范值；未写入 `data` 的扁平标记导出时清空；`getSource().buffer` 不变。
+- `export`：先按 `outputFormat` 生成导出值，再跑 `beforeExport`，再在**副本**上替换标记并扩行/嵌图；`getData()` 仍是规范值；未写入 `data` 的扁平标记导出时清空；`getSource().buffer` 不变。`afterExport` 可改返回的 buffer，然后才发 `exported`。
 
 ### 事件 `KernelEvent`
 
@@ -282,6 +297,39 @@ type DispatchResult =
 |------|------|
 | `load` / `hydrate` | `source.kind === adapter.kind` |
 | 其余写命令 / `export` | 已有 `definition` 且已有 `source` |
+
+### `plugins`
+
+可选钩子数组，**不替代** `validators` / `formatters` / `subscribe`。缺方法就跳过，按数组顺序同步执行。同一对象可当 `PaperfillPlugin` 传给 kernel、预览、PDF，用不到的钩子忽略。
+
+| 钩子 | 时机 | 返回 |
+|------|------|------|
+| `afterDiscover(fields, { source })` | `load` 扫完标记、写入 definition / `insertAnchor` 之前 | `DiscoveredField[]` 替换列表 |
+| `afterHydrate({ definition, data, source })` | `load` / `hydrate` 状态已写入之后；随后跑 `validators` | `{ data }` 替换填写值 |
+| `beforeExport(data, ctx)` | `formatData` / `formatters` 之后、`bind` 之前；`getExportData()` 同样走这里 | 替换导出 data |
+| `afterExport({ buffer, format }, ctx)` | `adapter.export()` 之后、`exported` 事件之前 | `Uint8Array` 或 `{ buffer }` |
+
+不提供 bind/OOXML、`insertAnchor`、通用 `dispatch` 中间件。
+
+```ts
+const kernel = createKernel({
+  adapter: new DocxAdapter(),
+  validators: [crossField],
+  formatters: { amountCn },
+  plugins: [
+    {
+      afterHydrate({ data }) {
+        return { data: { ...data, signDate: data.signDate ?? today } }
+      },
+      beforeExport(data) {
+        return { ...data, stamp: 'CONFIDENTIAL' }
+      },
+    },
+  ],
+})
+```
+
+顺序：`afterHydrate` → `validators`；`formatters` → `beforeExport` → `bind` → `afterExport` → `subscribe('exported')`。
 
 ---
 
@@ -305,10 +353,10 @@ interface DocumentAdapter {
 
 | 类 / API | 导入 | 说明 |
 |----------|------|------|
-| `DocxAdapter` | `paperfill` | OOXML / JSZip；按 `{{marker}}` bind |
-| `mountDocxPreview` | `paperfill` | 把 `.docx` 渲进传入的 `container` 并铺满宽度；默认 `inWrapper: false`、`ignoreWidth: true` |
-| `XlsxAdapter` | `paperfill` | ExcelJS；单元格文本中的标记；`getPreview` 含 `style`（背景/字体色等） |
-| `mountXlsxPreview` | `paperfill` | 把 `getPreview()` 的 sheets 渲成表格 DOM，业务只注入 `mountField` |
+| `DocxAdapter` | `paperfill` | OOXML / JSZip；按标记 bind。`new DocxAdapter({ markers })` |
+| `mountDocxPreview` | `paperfill` | 把 `.docx` 渲进传入的 `container` 并铺满宽度；默认 `inWrapper: false`、`ignoreWidth: true`；自定义起止符传 `markers`；`plugins`：`afterHtml` / `afterExpand` / `afterSlots` |
+| `XlsxAdapter` | `paperfill` | ExcelJS；单元格文本中的标记；`getPreview` 含 `style`（背景/字体色等）。`new XlsxAdapter({ markers })` |
+| `mountXlsxPreview` | `paperfill` | 把 `getPreview()` 的 sheets 渲成表格 DOM，业务只注入 `mountField`；`plugins`：`afterSheets` / `afterTable` |
 
 ```ts
 import { mountDocxPreview } from 'paperfill'
@@ -319,6 +367,8 @@ const handle = mountDocxPreview(container, {
   validation: kernel.validate(),
   mountField: myMounter,
   onChange: (path, value) => kernel.dispatch({ type: 'setValue', path, value }),
+  markers: kernel.getMarkers(),
+  // plugins: [{ afterHtml(root) { ... } }],
   // 默认铺满 container。要 A4 页框：
   // render: { inWrapper: true, ignoreWidth: false, ignoreHeight: false },
 })
@@ -336,6 +386,7 @@ if (preview?.kind === 'xlsx') {
     validation: kernel.validate(),
     mountField: myMounter, // 或 nativeFieldMounter
     onChange: (path, value) => kernel.dispatch({ type: 'setValue', path, value }),
+    // plugins: [{ afterTable(root) { ... } }],
   })
   // handle.update({ sheets, fields, validation }); handle.destroy()
 }
@@ -344,6 +395,8 @@ if (preview?.kind === 'xlsx') {
 `XlsxPreviewCell.style`（可选）：`background` / `color`（`#rrggbb`）、`fontWeight`。`argb` 直出；仅有 `theme` 索引时用默认 Office 主题近似色。不覆盖渐变/条件格式。
 
 `getPreview()` 默认裁掉末尾没有内容/样式的幽灵行和幽灵列（ExcelJS `rowCount` 常被空行撑大）；中间空行保留。导出文件不改。
+
+Word 预览内置仍会先 `fitDocxToContainer`（把 `section.docx` 拉满宿主），再跑你的 `afterHtml`。可选再传 `docxFitHostPlugin`（幂等）。不要用 kernel 的 `afterHydrate` 当预览钩子——预览槽位挂完后是 `afterSlots`。
 
 ---
 
@@ -394,6 +447,7 @@ const pdf = await exportFilledDocument({
   kind: filled.format,
   buffer: filled.buffer,
   options: { mode: 'html2canvas' },
+  // plugins: [{ afterPdfHtml(host) { ... } }],
 })
 ```
 
@@ -404,6 +458,7 @@ type FilledExportInput = {
   kind: 'docx' | 'xlsx'
   buffer: Uint8Array
   options?: ExportPdfOptions
+  plugins?: PdfPlugin[] // afterPdfHtml(host, { kind })：填好的 HTML 之后、截图/打印之前
 }
 
 interface ExportPdfOptions {

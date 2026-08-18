@@ -116,3 +116,52 @@ test('mountXlsxPreview mounts field slots and applies cell background', () => {
     assert.equal(host.childNodes.length, 0)
   })
 })
+
+test('xlsx preview plugins run afterSheets then afterTable', () => {
+  withDom(() => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const order: string[] = []
+    const handle = mountXlsxPreview(host, {
+      sheets: [
+        {
+          name: '合同',
+          colWidths: [10],
+          cells: [[{ inlines: [{ type: 'field', name: 'partyA' }] }]],
+        },
+      ],
+      fields: [{ id: '1', name: 'partyA', type: 'text', value: '星河' }],
+      mountField: (container, ctx) => {
+        container.textContent = String(ctx.value ?? '')
+        return { update() {}, destroy() { container.replaceChildren() } }
+      },
+      onChange() {},
+      plugins: [
+        {
+          afterSheets(sheets) {
+            order.push('afterSheets')
+            return [
+              {
+                ...sheets[0],
+                cells: [
+                  ...sheets[0].cells,
+                  [{ inlines: [{ type: 'text', text: 'footer' }] }],
+                ],
+              },
+            ]
+          },
+          afterTable(root) {
+            order.push('afterTable')
+            assert.ok(root.querySelector('.ck-xlsx-table'))
+            root.dataset.ready = '1'
+          },
+        },
+      ],
+    })
+    assert.deepEqual(order, ['afterSheets', 'afterTable'])
+    assert.equal(host.dataset.ready, '1')
+    const tds = [...host.querySelectorAll('td')].map((td) => td.textContent)
+    assert.deepEqual(tds, ['星河', 'footer'])
+    handle.destroy()
+  })
+})

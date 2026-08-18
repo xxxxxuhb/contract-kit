@@ -1,4 +1,4 @@
-import { splitByMarkers, type PreviewBlock, type PreviewInline, type PreviewParagraph, type PreviewTable } from '@paperfill/kernel'
+import { splitByMarkers, type MarkerDelimiters, type PreviewBlock, type PreviewInline, type PreviewParagraph, type PreviewTable } from '@paperfill/kernel'
 import { joinTextNodes } from './xml'
 
 function isTagStart(xml: string, at: number, tag: string): boolean {
@@ -51,23 +51,23 @@ function paragraphAlign(xml: string): PreviewParagraph['align'] {
   return match[1] as PreviewParagraph['align']
 }
 
-function inlinesFromText(text: string): PreviewInline[] {
-  return splitByMarkers(text).map((segment) =>
+function inlinesFromText(text: string, markers?: MarkerDelimiters | null): PreviewInline[] {
+  return splitByMarkers(text, markers).map((segment) =>
     segment.kind === 'text'
       ? { type: 'text' as const, text: segment.text }
       : { type: 'field' as const, name: segment.name },
   )
 }
 
-function parseParagraph(xml: string): PreviewParagraph {
+function parseParagraph(xml: string, markers?: MarkerDelimiters | null): PreviewParagraph {
   return {
     type: 'paragraph',
     align: paragraphAlign(xml),
-    inlines: inlinesFromText(joinTextNodes(xml)),
+    inlines: inlinesFromText(joinTextNodes(xml), markers),
   }
 }
 
-function parseTable(xml: string): PreviewTable {
+function parseTable(xml: string, markers?: MarkerDelimiters | null): PreviewTable {
   const rows: PreviewTable['rows'] = []
   let i = 0
   while (i < xml.length) {
@@ -81,7 +81,7 @@ function parseTable(xml: string): PreviewTable {
       const tc = indexOfTag(rowXml, 'w:tc', j)
       if (tc === -1) break
       const tcEnd = findClosing(rowXml, tc, 'w:tc')
-      cells.push({ blocks: parseSequence(rowXml.slice(tc, tcEnd)) })
+      cells.push({ blocks: parseSequence(rowXml.slice(tc, tcEnd), markers) })
       j = tcEnd
     }
     rows.push(cells)
@@ -90,7 +90,7 @@ function parseTable(xml: string): PreviewTable {
   return { type: 'table', rows }
 }
 
-export function parseSequence(xml: string): PreviewBlock[] {
+export function parseSequence(xml: string, markers?: MarkerDelimiters | null): PreviewBlock[] {
   const blocks: PreviewBlock[] = []
   let i = 0
   while (i < xml.length) {
@@ -99,18 +99,18 @@ export function parseSequence(xml: string): PreviewBlock[] {
     if (tbl === -1 && p === -1) break
     if (tbl !== -1 && (p === -1 || tbl < p)) {
       const end = findClosing(xml, tbl, 'w:tbl')
-      blocks.push(parseTable(xml.slice(tbl, end)))
+      blocks.push(parseTable(xml.slice(tbl, end), markers))
       i = end
     } else {
       const end = findClosing(xml, p, 'w:p')
-      blocks.push(parseParagraph(xml.slice(p, end)))
+      blocks.push(parseParagraph(xml.slice(p, end), markers))
       i = end
     }
   }
   return blocks
 }
 
-export function buildDocxPreview(documentXml: string): PreviewBlock[] {
+export function buildDocxPreview(documentXml: string, markers?: MarkerDelimiters | null): PreviewBlock[] {
   const body = documentXml.match(/<w:body\b[^>]*>([\s\S]*)<\/w:body>/)
-  return parseSequence(body ? body[1] : documentXml)
+  return parseSequence(body ? body[1] : documentXml, markers)
 }

@@ -7,4 +7,4 @@ export {
   exportFilledDocument,
   printFilledDocument,
 } from './filled'
-export type { FilledExportInput } from './filled'
+export type { FilledExportInput, PdfPlugin, PdfPluginContext } from './filled'

@@ -1,4 +1,4 @@
-import { parseDataUrl, parseMarkers, type Field } from '@paperfill/kernel'
+import { parseDataUrl, createMarkerSyntax, type Field, type MarkerDelimiters } from '@paperfill/kernel'
 
 const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 const R_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
@@ -82,14 +82,18 @@ export function planImageEmbeds(
   return embeds
 }
 
-export function replaceImageMarkersInXml(xml: string, embeds: ImageEmbed[]): string {
+export function replaceImageMarkersInXml(
+  xml: string,
+  embeds: ImageEmbed[],
+  markers?: MarkerDelimiters | null,
+): string {
   if (!embeds.length) return xml
+  const syntax = createMarkerSyntax(markers)
   let next = xml
   let docPrId = 1000
   for (const embed of embeds) {
     const drawing = drawingXml(embed.relId, embed.name, emu(120), emu(120), docPrId++)
-    const re = new RegExp(`\\{\\{\\s*${embed.name}(?:\\s*:\\s*[A-Za-z_][A-Za-z0-9_]*)?\\s*\\}\\}`, 'g')
-    next = next.replace(re, drawing)
+    next = next.replace(syntax.namedRegex(embed.name), drawing)
   }
   return next
 }

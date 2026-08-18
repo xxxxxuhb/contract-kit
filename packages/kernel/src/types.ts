@@ -73,10 +73,17 @@ export interface Field {
   anchor: Anchor
 }
 
+export interface MarkerDelimiters {
+  start: string
+  end: string
+}
+
 export interface TemplateDefinition {
   version: 1
   source: { kind: 'docx' | 'xlsx'; hash: string }
   fields: Field[]
+  /** Omit = `{{` / `}}`. Persist with the template so hydrate matches. */
+  markers?: MarkerDelimiters
 }
 
 export interface Source {
@@ -191,6 +198,8 @@ export type DiscoveredField = Omit<Field, 'id'> & { id?: string }
 
 export interface DocumentAdapter {
   kind: 'docx' | 'xlsx'
+  /** Optional; kernel pushes delimiters on load / hydrate. */
+  setMarkers?(markers: MarkerDelimiters): void
   load(source: Source): Promise<void>
   discoverFields(): Promise<DiscoveredField[]>
   getPreview(): PreviewModel
@@ -236,12 +245,14 @@ export interface Kernel {
   getState(): KernelState
   getDefinition(): TemplateDefinition | null
   getData(): Record<string, unknown>
-  /** Data after `outputFormat` / custom formatters. Used by `export`. */
+  /** Data after `outputFormat` / custom formatters / `beforeExport` plugins. Used by `export`. */
   getExportData(): Record<string, unknown>
   getFormSchema(): FormSchema
   getView(): ViewModel
   getPreview(): PreviewModel | null
   getSource(): Source | null
+  /** Effective marker delimiters (`{{` / `}}` unless configured). */
+  getMarkers(): MarkerDelimiters
   validate(): ValidationResult
   can(command: Command): boolean
   dispatch(command: Command): Promise<DispatchResult>
@@ -267,4 +278,37 @@ export interface CreateKernelOptions {
   validators?: FieldValidator[]
   /** Named formatters referenced by `Field.outputFormat`. */
   formatters?: Record<string, FieldFormatter>
+  /** Marker delimiters. Default `{{` / `}}`. hydrate uses `definition.markers` if present. */
+  markers?: MarkerDelimiters
+  /**
+   * Optional hooks. Does not replace `validators` / `formatters` / `subscribe`.
+   * Missing methods are skipped. Runs in array order.
+   */
+  plugins?: KernelPlugin[]
+}
+
+export type KernelPluginContext = {
+  source: Source
+  definition: TemplateDefinition
+}
+
+export interface KernelPlugin {
+  /** After marker scan on `load`, before definition / insertAnchor. */
+  afterDiscover?(fields: DiscoveredField[], ctx: { source: Source }): DiscoveredField[] | void
+  /** After `load` / `hydrate` state is set. May replace `data` (then validation runs). */
+  afterHydrate?(ctx: {
+    definition: TemplateDefinition
+    data: Record<string, unknown>
+    source: Source
+  }): { data?: Record<string, unknown> } | void
+  /** After `formatData` / formatters, before `bind`. `getExportData()` uses this too. */
+  beforeExport?(
+    data: Record<string, unknown>,
+    ctx: { definition: TemplateDefinition; source: Source },
+  ): Record<string, unknown> | void
+  /** After `adapter.export()`, before `exported` event. */
+  afterExport?(
+    result: { buffer: Uint8Array; format: 'docx' | 'xlsx' },
+    ctx: { definition: TemplateDefinition; source: Source },
+  ): Uint8Array | { buffer: Uint8Array } | void
 }

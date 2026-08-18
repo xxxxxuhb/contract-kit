@@ -1,9 +1,11 @@
 import {
+  createMarkerSyntax,
   replaceMarkers,
   replaceRowMarkers,
   rowsForExpand,
   tableNamesInText,
   textHasTableMarkers,
+  type MarkerDelimiters,
 } from '@paperfill/kernel'
 
 const PARAGRAPH_RE = /<w:p\b[\s\S]*?<\/w:p>/g
@@ -35,9 +37,13 @@ export function extractText(xml: string): string {
   return paragraphs.join('\n')
 }
 
-export function applyMarkers(xml: string, data: Record<string, unknown>): string {
+export function applyMarkers(
+  xml: string,
+  data: Record<string, unknown>,
+  markers?: MarkerDelimiters | null,
+): string {
   const paragraphRe = new RegExp(PARAGRAPH_RE.source, 'g')
-  return xml.replace(paragraphRe, (paragraph) => applyMarkersInParagraph(paragraph, data))
+  return xml.replace(paragraphRe, (paragraph) => applyMarkersInParagraph(paragraph, data, markers))
 }
 
 export function joinTextNodes(xml: string): string {
@@ -63,11 +69,15 @@ function writeParagraphText(paragraph: string, replaced: string): string {
   })
 }
 
-function applyMarkersInParagraph(paragraph: string, data: Record<string, unknown>): string {
+function applyMarkersInParagraph(
+  paragraph: string,
+  data: Record<string, unknown>,
+  markers?: MarkerDelimiters | null,
+): string {
   if (paragraph.includes('<w:drawing')) return paragraph
   const joined = joinTextNodes(paragraph)
-  if (!joined.includes('{{')) return paragraph
-  const replaced = replaceMarkers(joined, data, { missing: 'blank' })
+  if (!createMarkerSyntax(markers).contains(joined)) return paragraph
+  const replaced = replaceMarkers(joined, data, { missing: 'blank' }, markers)
   if (replaced === joined) return paragraph
   return writeParagraphText(paragraph, replaced)
 }
@@ -77,10 +87,11 @@ function applyRowMarkersInParagraph(
   tableName: string,
   row: Record<string, unknown>,
   index: number,
+  markers?: MarkerDelimiters | null,
 ): string {
   const joined = joinTextNodes(paragraph)
-  if (!joined.includes('{{')) return paragraph
-  const replaced = replaceRowMarkers(joined, tableName, row, index)
+  if (!createMarkerSyntax(markers).contains(joined)) return paragraph
+  const replaced = replaceRowMarkers(joined, tableName, row, index, markers)
   if (replaced === joined) return paragraph
   return writeParagraphText(paragraph, replaced)
 }
@@ -134,24 +145,34 @@ function fillTemplateRow(
   tableName: string,
   row: Record<string, unknown>,
   index: number,
+  markers?: MarkerDelimiters | null,
 ): string {
   const paragraphRe = new RegExp(PARAGRAPH_RE.source, 'g')
   return trXml.replace(paragraphRe, (paragraph) =>
-    applyRowMarkersInParagraph(paragraph, tableName, row, index),
+    applyRowMarkersInParagraph(paragraph, tableName, row, index, markers),
   )
 }
 
-/** Expand `w:tr` template rows that contain `{{tableName.col}}` using data arrays. */
-export function expandTableRows(xml: string, data: Record<string, unknown>): string {
-  const names = tableNamesInText(xml)
+/** Expand `w:tr` template rows that contain table column markers using data arrays. */
+export function expandTableRows(
+  xml: string,
+  data: Record<string, unknown>,
+  markers?: MarkerDelimiters | null,
+): string {
+  const names = tableNamesInText(xml, markers)
   let result = xml
   for (const tableName of names) {
-    result = expandOneTable(result, tableName, data[tableName])
+    result = expandOneTable(result, tableName, data[tableName], markers)
   }
   return result
 }
 
-function expandOneTable(xml: string, tableName: string, value: unknown): string {
+function expandOneTable(
+  xml: string,
+  tableName: string,
+  value: unknown,
+  markers?: MarkerDelimiters | null,
+): string {
   const rows = rowsForExpand(value)
   const parts: string[] = []
   let last = 0
@@ -162,10 +183,10 @@ function expandOneTable(xml: string, tableName: string, value: unknown): string 
     const trEnd = findClosing(xml, trStart, 'w:tr')
     const trXml = xml.slice(trStart, trEnd)
     const trText = extractText(trXml)
-    if (textHasTableMarkers(trText, tableName)) {
+    if (textHasTableMarkers(trText, tableName, markers)) {
       parts.push(xml.slice(last, trStart))
       for (let r = 0; r < rows.length; r++) {
-        parts.push(fillTemplateRow(trXml, tableName, rows[r], r))
+        parts.push(fillTemplateRow(trXml, tableName, rows[r], r, markers))
       }
       last = trEnd
       i = trEnd
@@ -178,8 +199,12 @@ function expandOneTable(xml: string, tableName: string, value: unknown): string 
 }
 
 /** Expand table rows then replace remaining flat markers. */
-export function bindDocumentXml(xml: string, data: Record<string, unknown>): string {
-  return applyMarkers(expandTableRows(xml, data), data)
+export function bindDocumentXml(
+  xml: string,
+  data: Record<string, unknown>,
+  markers?: MarkerDelimiters | null,
+): string {
+  return applyMarkers(expandTableRows(xml, data, markers), data, markers)
 }
 
 export function isWordXmlPath(path: string): boolean {

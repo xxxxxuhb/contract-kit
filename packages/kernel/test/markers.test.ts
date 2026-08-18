@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   aggregateMarkerFields,
+  normalizeMarkers,
   parseMarkers,
   parseTableColumnRef,
   replaceMarkers,
@@ -106,6 +107,24 @@ test('replaceRowMarkers fills one row and leaves other markers', () => {
     ),
     '1. 苹果 / {{partyA}}',
   )
+})
+
+test('custom delimiters parse and replace without matching default braces', () => {
+  const markers = { start: '[[', end: ']]' }
+  const text = '甲方[[partyA]] 忽略{{partyB}} 明细[[items.name]]'
+  assert.deepEqual(
+    parseMarkers(text, markers).map((m) => m.name),
+    ['partyA', 'items.name'],
+  )
+  assert.equal(replaceMarkers(text, { partyA: '星河' }, undefined, markers), '甲方星河 忽略{{partyB}} 明细[[items.name]]')
+  assert.equal(
+    replaceRowMarkers(text, 'items', { name: '苹果' }, 0, markers),
+    '甲方[[partyA]] 忽略{{partyB}} 明细苹果',
+  )
+})
+
+test('normalizeMarkers rejects empty delimiters', () => {
+  assert.throws(() => normalizeMarkers({ start: '', end: '}}' }), /non-empty/)
 })
 
 test('setDataPath writes nested table cells', () => {

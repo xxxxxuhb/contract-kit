@@ -1,27 +1,35 @@
-import type { Field } from '@paperfill/kernel'
+import type { Field, MarkerDelimiters } from '@paperfill/kernel'
+import { createMarkerSyntax } from '@paperfill/kernel'
 
-function markerText(field: Field) {
-  return field.type === 'text' ? `{{${field.name}}}` : `{{${field.name}:${field.type}}}`
-}
-
-function markerRe(name: string) {
-  return new RegExp(`\\{\\{\\s*${name}(?:\\s*:\\s*[A-Za-z_][A-Za-z0-9_]*)?\\s*\\}\\}`, 'g')
-}
-
-export function insertMarkerInDocumentXml(xml: string, field: Field): string {
-  if (markerRe(field.name).test(xml)) return xml
-  const paragraph = `<w:p><w:r><w:t xml:space="preserve">${markerText(field)}</w:t></w:r></w:p>`
+export function insertMarkerInDocumentXml(
+  xml: string,
+  field: Field,
+  markers?: MarkerDelimiters | null,
+): string {
+  const syntax = createMarkerSyntax(markers)
+  if (syntax.namedRegex(field.name).test(xml)) return xml
+  const paragraph = `<w:p><w:r><w:t xml:space="preserve">${syntax.wrap(field.name, field.type)}</w:t></w:r></w:p>`
   if (xml.includes('</w:body>')) return xml.replace('</w:body>', `${paragraph}</w:body>`)
   return `${xml}${paragraph}`
 }
 
-export function updateMarkerInDocumentXml(xml: string, previousName: string, field: Field): string {
-  const next = markerText(field)
-  const updated = xml.replace(markerRe(previousName), next)
+export function updateMarkerInDocumentXml(
+  xml: string,
+  previousName: string,
+  field: Field,
+  markers?: MarkerDelimiters | null,
+): string {
+  const syntax = createMarkerSyntax(markers)
+  const next = syntax.wrap(field.name, field.type)
+  const updated = xml.replace(syntax.namedRegex(previousName), next)
   if (updated !== xml) return updated
-  return insertMarkerInDocumentXml(xml, field)
+  return insertMarkerInDocumentXml(xml, field, markers)
 }
 
-export function removeMarkerFromDocumentXml(xml: string, name: string): string {
-  return xml.replace(markerRe(name), '')
+export function removeMarkerFromDocumentXml(
+  xml: string,
+  name: string,
+  markers?: MarkerDelimiters | null,
+): string {
+  return xml.replace(createMarkerSyntax(markers).namedRegex(name), '')
 }
